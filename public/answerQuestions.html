@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FTNQ</title>
+    <link rel="stylesheet" type="text/css" href="css/app.css">
+
+    <!-- update the version number as needed -->
+    <!-- include only the Firebase features as you need -->
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-messaging.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-functions.js"></script>
+    <!-- initialize the SDK after all desired features are loaded -->
+    <script defer src="/__/firebase/init.js"></script>
+</head>
+<body>
+<div class="topbar">
+    <h2>FTNQ</h2>
+</div>
+<div class="wrapper">
+
+    <div style="align-content: end"><a href="changeNick.html">Change nickname</a> | <a href="logout.html">Logout</a>
+    </div>
+
+    <div id="welcome"><br/></div>
+
+    <div id="clock"><br/></div>
+
+    <div id="loading">Loading...</div>
+
+    <div id="question"><br/></div>
+
+    <div id="vipskip" style="visibility: hidden">
+        <button onclick="vipSkip(); return false;">(VIP) Skip naar stemmen, ook al is nog niet iedereen klaar met
+            invullen
+        </button>
+    </div>
+
+    <div id="players_done"><br/></div>
+
+    <script>
+        //
+        let firestore;
+        let currentRoom;
+        let room;
+        let round;
+        let questionsPerUser; //object field per user
+        let questionIdsForMe = []; //array of question-objects
+        let questionsForMe = []; //array of questionObjects
+        let currentQuestionIndex = 0;
+        let started_at_wa; //when the round started, used when calculating time left.
+        let isVip = false;
+        let players = [];
+        let playersDone = [];
+
+        document.addEventListener('DOMContentLoaded', function () {
+            // The Firebase SDK is initialized
+            const firestore = firebase.firestore();
+            const settings = {timestampsInSnapshots: true};
+            firestore.settings(settings);
+            //
+            firebase.auth().onAuthStateChanged(user => {
+                if (user) {
+                    //Logged in
+                    console.log(user);
+                    //check if user is in room
+                    firestore
+                        .collection('users').doc(user.uid).get()
+                        .then((userDoc) => {
+                            currentRoom = userDoc.data().currentRoom;
+                            return firestore
+                                .collection('rooms').doc(currentRoom)
+                                .get();
+                        })
+                        .then((roomDoc) => {
+                            console.log('roomDoc');
+                            room = roomDoc.data();
+                            if (room.vip === user.uid) {
+                                isVip = true;
+                            }
+                            console.log(room);
+                            return firestore
+                                .collection('rooms').doc(currentRoom)
+                                .collection('rounds').doc(room.status).get();
+                        })
+                        .then((roundDoc) => {
+                            console.log('roundDoc');
+                            round = roundDoc.data();
+                            //console.log(round);
+                            started_at_wa = round.started_at_wa;
+                            questionsPerUser = round.questionsPerUser; //object (map)
+                            //console.log(questionsPerUser);
+                            questionIdsForMe = questionsPerUser[user.uid]; //array
+                            //console.log(questionIdsForMe);
+                            let qPromises = [];
+                            questionIdsForMe.forEach((questionId) => {
+                                qPromises.push(
+                                    firestore
+                                        .collection('rooms').doc(currentRoom)
+                                        .collection('rounds').doc(room.status)
+                                        .collection('questions').doc(questionId).get()
+                                        .then((questionDoc) => {
+                                            questionsForMe.push(questionDoc.data().question);
+                                            return Promise.resolve();
+                                        }));
+                            });
+                            Promise.all(qPromises).then((arrayOfQuestions) => {
+                                console.log("Questions loaded");
+                                console.log(questionsForMe);
+                                showClock();
+                                //Show questions on screen to answer
+                                showQuestion();
+                            });
+                            //start checking for round status, it'll soon change from 'write_answers' to 'vote'.
+                            startListeningForRoundStatus();
+                            startListeningForPlayersDone();
+                        })
+                        .catch(function (error) {
+                            console.log("Error getting document:", error);
+                            alert(error);
+                            //window.location = 'logout.html';
+                        });
+                } else {
+                    //Logged out
+                    alert('logged out');
+                    //window.location = '/index.html';
+                }
+            });
+            try {
+                let app = firebase.app();
+                console.log("Firebase loaded");
+            } catch (e) {
+                console.error(e);
+            }
+        });
+
+        function showQuestion() {
+            document.getElementById('loading').style.display = 'none';
+            let html = '';
+            let currentQuestion = questionsForMe[currentQuestionIndex];
+            html += '<b>' + currentQuestion.question + '</b><br /><input type="text" id="answer" /><hr />\n\n';
+            html += '<button onclick="answerQuestion(); return false;">OK</button>';
+            document.getElementById('question').innerHTML = html;
+        }
+
+        function answerQuestion() {
+            document.getElementById('loading').style.display = 'block';
+            let answer = document.getElementById('answer').value;
+            console.log(answer);
+
+            let answerQuestion = firebase.functions().httpsCallable('answerQuestion');
+            answerQuestion({answeredQuestionId: questionIdsForMe[currentQuestionIndex], answer: answer})
+                .then(function (result) {
+                    console.log("answered question " + questionIdsForMe[currentQuestionIndex]);
+                    currentQuestionIndex++;
+                    if (currentQuestionIndex < questionsForMe.length) {
+                        showQuestion();
+                    } else {
+                        showDone();
+                    }
+                })
+                .catch((error) => {
+                    console.log(error);
+                    alert(error);
+                });
+        }
+
+        function showDone() {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('question').innerText = "Done, now wait for other players";
+        }
+
+        function showClock() {
+            setInterval(updateClock, 500);
+        }
+
+        function updateClock() {
+            let text = "Time: ";
+            let start = started_at_wa.seconds; //Date.parse(started_at_wa);
+            let timelimit = 2 * 60;
+            let diff = (start + timelimit) - Math.floor(Date.now() / 1000);
+            if (diff < 0) {
+                text = "Time is up!";
+                if (isVip) {
+                    document.getElementById('vipskip').style.visibility = 'visible';
+                }
+            } else {
+                text += diff;
+            }
+            document.getElementById('clock').innerText = text;
+        }
+
+        function startListeningForRoundStatus() {
+            const firestore = firebase.firestore();
+            const settings = {timestampsInSnapshots: true};
+            firestore.settings(settings);
+
+            return firestore
+                .collection('rooms').doc(currentRoom)
+                .collection('rounds').doc(room.status)
+                .onSnapshot((roundDoc) => {
+                    //check if status has changed to 'vote' yet.
+                    round = roundDoc.data();
+                    console.log("on round status:" + roundDoc.data());
+                    if (round.status !== 'write_answers') {
+                        if (round.status === 'vote') {
+                            //go to next screen
+                            window.location = "vote.html";
+                        }
+                        //Should never happen, but still
+                        if (round.status === 'results'){
+                            //go to result screen
+                            window.location = "roundResult.html";
+                        }
+                    }
+                });
+        }
+
+        function startListeningForPlayersDone() {
+            console.log('start listening for players done');
+            const firestore = firebase.firestore();
+            const settings = {timestampsInSnapshots: true};
+            firestore.settings(settings);
+
+            //Listen for nickname changes
+            firestore.collection(`rooms/${currentRoom}/players`)
+                .onSnapshot((querySnapshot) => {
+                    console.log('-- listening for nickname changes');
+                    players = [];
+                    querySnapshot.forEach((playerDoc) => {
+                        players[playerDoc.data().uid] = playerDoc.data().nickname;
+                    });
+                    updatePlayersDone();
+                });
+
+            firestore.collection(`rooms/${currentRoom}/rounds/${room.status}/players_done`)
+                .onSnapshot((querySnapshot) => {
+                    console.log('-- listening for players done');
+                    playersDone = [];
+                    querySnapshot.forEach((playerDoneDoc) => {
+                        playersDone.push(playerDoneDoc.id);
+                    });
+                    updatePlayersDone();
+                });
+        }
+
+        function updatePlayersDone() {
+            let html = "<hr />Spelers:<br /><ul>\n";
+            for (let playerKey in players) {
+                let done = "";
+                playersDone.forEach((playerDone) => {
+                    if (playerKey === playerDone) {
+                        done = "<b>DONE</b>";
+                    }
+                });
+                html += `<li>${players[playerKey]} ${done}</li>\n`;
+            }
+            html += "</ul>\n";
+            document.getElementById('players_done').innerHTML = html;
+        }
+
+        function vipSkip() {
+            //Skip to voting
+            console.log('skipping to voting...');
+            let skipFunc = firebase.functions().httpsCallable('vipEndWritingAnswers');
+            skipFunc({}).then(() => {
+                console.log('skipping to voting done.');
+            }).catch((error) => {
+                console.log(error);
+                alert(error);
+            });
+        }
+
+    </script>
+</div>
+</body>
+</html>

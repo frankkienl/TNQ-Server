@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FTNQ</title>
+
+    <!-- update the version number as needed -->
+    <!-- include only the Firebase features as you need -->
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-functions.js"></script>
+    <!-- initialize the SDK after all desired features are loaded -->
+    <script defer src="/__/firebase/init.js"></script>
+</head>
+<body>
+<h2>FTNQ - Seeder</h2>
+
+<button onclick="seedDatabase(); return false;">Seed</button>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        //add important data to Firestore
+        //that should be there initially
+
+        const firestore = firebase.firestore();
+        const settings = {timestampsInSnapshots: true};
+        firestore.settings(settings);
+
+        firebase.auth().onAuthStateChanged(user => {
+            if (user) {
+                //Logged in
+                console.log(user);
+                if (user.uid !== "98QSdK5XAyYfjSoCZFN9hyh50xg2"){
+                    window.location = 'logout.html';
+                }
+            } else {
+                //Logged out
+                window.location = 'index.html';
+            }
+        });
+
+        try {
+            let app = firebase.app();
+            console.log("Firebase loaded");
+        } catch (e) {
+            console.error(e);
+        }
+    });
+
+    function seedDatabase() {
+        let firestore = firebase.firestore();
+
+        //question packs
+        let promises = [];
+
+        //Normal 1
+        let promiseQp1 = firestore.collection('questionpacks').doc('normal1')
+            .set({
+                title: 'Normal 1',
+                author: 'FrankkieNL',
+                language: 'en'
+            });
+        promises.push(promiseQp1);
+        let promiseQp1Q1 =
+            firestore.collection('questionpacks').doc('normal1')
+                .collection('questions').add({
+                    type: 'text',
+                    question: 'Why did the chicken cross the road?',
+                });
+        promises.push(promiseQp1Q1);
+        let promiseQp1Q2 =
+            firestore.collection('questionpacks').doc('normal1')
+                .collection('questions').add({
+                type: 'text',
+                question: 'How do "don\'t walk on the grass"-signs get there?',
+            });
+        promises.push(promiseQp1Q2);
+
+        //MLP 1
+        let promiseQp2 = firestore
+            .collection('questionpacks').doc('mlp1')
+            .set({
+                title: 'MLP 1',
+                author: 'FrankkieNL',
+                language: 'en'
+            });
+        promises.push(promiseQp2);
+        let promiseQp2Q1 =
+            firestore.collection('questionpacks').doc('mlp1')
+                .collection('questions').add({
+                type: 'text',
+                question: 'What is Pinkie Pie hiding in her mane?',
+            });
+        promises.push(promiseQp2Q1);
+        let promiseQp2Q2 =
+            firestore.collection('questionpacks').doc('mlp1')
+                .collection('questions').add({
+                type: 'text',
+                question: 'Fluttershy likes all animals, but she likes ___ less.',
+            });
+        promises.push(promiseQp2Q2);
+        Promise.all(promises).then(()=>{
+            alert("Questionpacks are made");
+        }).catch((e) => {console.log(e); alert(e);});
+    }
+</script>
+</body>
+</html>

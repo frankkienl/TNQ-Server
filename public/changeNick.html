@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FTNQ</title>
+  <link rel="stylesheet" type="text/css" href="css/app.css">
+
+  <!-- update the version number as needed -->
+  <!-- include only the Firebase features as you need -->
+  <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-messaging.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/5.7.0/firebase-functions.js"></script>
+  <!-- initialize the SDK after all desired features are loaded -->
+  <script defer src="/__/firebase/init.js"></script>
+</head>
+<body>
+<div class="topbar">
+  <h2>FTNQ</h2>
+</div>
+<div class="wrapper">
+
+  <div id="welcome"><br/></div>
+  <br/>
+
+  Pick a new nickname: <input type="text" name="nickname" id="nickname"/>
+  <button onclick="changeNick(); return false;" id="btn_changenick">OK</button>
+  <div id="loading" style="visibility: hidden">Loading...</div>
+  <br/><br/>
+  <a href="index.html" id="cancel" style="visibility: hidden">Cancel (don't change nickname)</a>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // The Firebase SDK is initialized
+
+      const firestore = firebase.firestore();
+      const settings = {timestampsInSnapshots: true};
+      firestore.settings(settings);
+
+      firebase.auth().onAuthStateChanged(user => {
+        if (user) {
+          //Logged in
+          console.log(user);
+          //show welcome message
+          firestore
+            .collection('users').doc(user.uid).get()
+            .then(function (doc) {
+              if (doc.exists) {
+                console.log("Document data:", doc.data());
+                let nickname = (doc.data().nickname != null) ? doc.data().nickname : "Anonymous";
+                if (doc.data().nickname != null) {
+                  document.getElementById('cancel').style.visibility = 'visible';
+                }
+                document.getElementById('welcome').innerText = "Welcome " + nickname;
+              } else {
+                // doc.data() will be undefined in this case
+                console.log("No such document!");
+                if (user.isAnonymous || user.displayName == null) {
+                  document.getElementById('welcome').innerText = "Welcome Anonymous Player";
+                } else {
+                  document.getElementById('welcome').innerText = "Welcome " + user.displayName;
+                }
+              }
+            }).catch(function (error) {
+            console.log("Error getting document:", error);
+          });
+        } else {
+          //Logged out
+          window.location = 'index.html';
+        }
+      });
+      try {
+        let app = firebase.app();
+        console.log("Firebase loaded");
+      } catch (e) {
+        console.error(e);
+      }
+    });
+
+    //Add event listener to input
+    document.querySelector('#nickname').addEventListener('keyup', function (e) {
+      if (e.keyCode === 13) {
+        changeNick();
+      }
+    });
+
+    //click the ok-button
+    function changeNick() {
+
+      const firestore = firebase.firestore();
+      const settings = {timestampsInSnapshots: true};
+      firestore.settings(settings);
+
+      let user = firebase.auth().currentUser;
+      if (user == null) {
+        alert("User == null");
+        return;
+      }
+
+      //write chosen username to database
+      if (document.getElementById('nickname').value) {
+        //Call function to change nickname
+        let changeNick = firebase.functions().httpsCallable('changeNickname');
+        changeNick({nickname: document.getElementById('nickname').value})
+          .then(function (result) {
+            console.log("change nickname");
+            window.location = 'index.html';
+          });
+        document.getElementById('loading').style.visibility = 'visible';
+      } else {
+        alert('pick a nickname');
+      }
+    }
+  </script>
+</div>
+</body>
+</html>
