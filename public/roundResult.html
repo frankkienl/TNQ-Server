@@ -97,16 +97,16 @@
 
                 document.getElementById('roomCode').innerText = currentRoomCode;
 
-                startListeningForRoomStatus();
+                startListeningForRoundStatus();
             }
 
-            function startListeningForRoomStatus() {
-                firestore.doc(`rooms/${currentRoomCode}`)
-                    .onSnapshot((roomDoc) => {
-                        room = roomDoc.data();
-                        if (room.status === 'game_over') {
-                            window.location = 'gameOver.html';
-                        } else {
+            function startListeningForRoundStatus() {
+                firestore.doc(`rooms/${currentRoomCode}/rounds/${room.status}`)
+                    .onSnapshot((roundDoc) => {
+                        round = roundDoc.data();
+                        if (round.status === 'ended') {
+                            //go to next round
+                            //room.status should be round2 (or 3) now
                             window.location = 'game.html';
                         }
                     });

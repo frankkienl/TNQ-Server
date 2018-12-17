@@ -724,9 +724,10 @@ exports.vipGoToNextRound = functions.https.onCall((data, context) => __awaiter(t
         roundNumber = 3;
     }
     roundNumber += 1;
-    if (roundNumber >= 3) {
+    if (roundNumber > 3) {
         //game is over
         yield firestore.doc(`rooms/${user.currentRoom}`).set({ status: `game_over` }, { merge: true });
+        yield firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).set({ status: 'ended' }, { merge: true });
     }
     else {
         yield prepareRound(user.currentRoom, playersCollection, roundNumber);

@@ -782,9 +782,10 @@ export const vipGoToNextRound = functions.https.onCall(async (data, context) => 
         roundNumber = 3;
     }
     roundNumber += 1;
-    if (roundNumber >= 3) {
+    if (roundNumber > 3) {
         //game is over
         await firestore.doc(`rooms/${user.currentRoom}`).set({status: `game_over`}, {merge: true});
+        await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).set({status: 'ended'},{merge: true});
     } else {
         await prepareRound(user.currentRoom, playersCollection, roundNumber);
 
