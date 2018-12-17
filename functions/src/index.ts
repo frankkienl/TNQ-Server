@@ -542,6 +542,26 @@ async function prepareVotingResult(roomCode, roundNr) {
     await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}/vote_results/question${questionNumber}`)
         .set(toWrite);
 
+    //add points to players
+    if (leftVotes.length > 0){
+        let playerDoc = await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).get();
+        let player = playerDoc.data();
+        if (!player.score){
+            await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({score: leftVotes.length},{merge:true});
+        } else {
+            await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({score: (player.score + leftVotes.length)},{merge:true});
+        }
+    }
+    if (rightVotes.length > 0){
+        let playerDoc = await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).get();
+        let player = playerDoc.data();
+        if (!player.score){
+            await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({score: leftVotes.length},{merge:true});
+        } else {
+            await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({score: (player.score + leftVotes.length)},{merge:true});
+        }
+    }
+
     //show vote result
     await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`)
         .set({status: 'voteResult'}, {merge: true});

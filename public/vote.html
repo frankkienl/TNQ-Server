@@ -160,6 +160,10 @@
 
             let leftAnswer = answers[currentQuestion.leftPlayer]['question' + currentQuestion.id];
             let rightAnswer = answers[currentQuestion.rightPlayer]['question' + currentQuestion.id];
+            //let leftName = room.players[currentQuestion.leftPlayer].nickname;
+            let leftName = "Linker speler";
+            //let rightName = room.players[currentQuestion.rightPlayer].nickname;
+            let rightName = "Rechter speler";
             let html = 'Resultaat<br /><table border="1">'
                 + '<tr><th colspan="2">'
                 + currentQuestion.question.question
@@ -174,6 +178,13 @@
                 + `<td><span id="leftVotes">?</span></td>`
                 + `<td><span id="rightVotes">?</span></td>`
                 + '</tr>';
+
+            //Show who submitted that answer
+            html += '<tr>'
+            + `<td>by: <strong>${leftName}</strong></td>`
+            + `<td>by: <strong>${rightName}</strong></td>`
+            + '</tr>';
+
             html += '</table>';
 
             if (isVip) {
@@ -207,7 +218,7 @@
                 document.getElementById('vote').innerHTML = 'Voted. Now wait for other players to vote.';
             }).catch((error) => {
                 console.log(error);
-                alert(error);
+                //alert(error); //pretend it didn't happen
             });
         }
 

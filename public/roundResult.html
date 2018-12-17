@@ -51,6 +51,7 @@
             let room; //object
             let round;
             let isVip = false;
+            let players = [];
 
             document.addEventListener('DOMContentLoaded', function () {
                 // The Firebase SDK is initialized
@@ -98,6 +99,21 @@
                 document.getElementById('roomCode').innerText = currentRoomCode;
 
                 startListeningForRoundStatus();
+
+                //Score board
+                let playersCollection = await firestore.collection(`rooms/${room.status}/players`).get();
+                playersCollection.forEach(function(doc){
+                    let player = doc.data();
+                    players.push(player);
+                });
+                let htmlScores = '<ul>\n';
+                for (let i = 0; i<players.length; i++){
+                    let p = players[i];
+                    let score = (!p.score) ? '0' : p.score;
+                    htmlScores += `<li>${p.nickname} - ${score}</li>`;
+                }
+                htmlScores += '</ul>';
+                document.getElementById('scores').innerHTML = htmlScores;
             }
 
             function startListeningForRoundStatus() {
