@@ -5,7 +5,8 @@
   },
   "functions": {
     "predeploy": [
-      "npm --prefix \"functions\" run build"
+      "npm --prefix \"functions\" run build",
+      "npm run build"
     ],
     "source": "functions"
   },
