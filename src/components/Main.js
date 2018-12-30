@@ -1,25 +1,39 @@
 import React, {Component} from 'react';
 import Login from "./Login";
+import PickRoom from "./PickRoom";
+import ChangeNickname from "./ChangeNickname";
 
 class Main extends Component {
 
-  constructor(props) {
-    super(props);
-    let mainComp = null;
+  render() {
 
-    if (!props.tnq.loggedIn){
+    let mainComp = null;
+    //decide based on props
+    if (!this.props.tnq.loggedIn || !this.props.tnq.user){
       mainComp = 'login';
+    } else if (!this.props.tnq.user.nickname){
+      mainComp = 'changeNickname';
+    } else if (!this.props.tnq.user.currentRoom){
+      mainComp = 'pickRoom';
     }
 
-    this.state = {tnq: props.tnq, mainComp: mainComp};
-  }
-
-  render() {
-    switch (this.state.mainComp) {
+    switch (mainComp) {
       case 'login':
         return (
           <div className="main">
-            <Login state={this.state}/>
+            <Login tnq={this.props.tnq} firebase={this.props.firebase}/>
+          </div>
+        );
+      case 'changeNickname':
+        return (
+          <div className="main">
+          <ChangeNickname tnq={this.props.tnq} firebase={this.props.firebase}/>
+          </div>
+        );
+      case 'pickRoom':
+        return (
+          <div className="main">
+            <PickRoom tnq={this.props.tnq} firebase={this.props.firebase}/>
           </div>
         );
       default:

@@ -3,6 +3,8 @@ import '../App.css';
 import TopBar from "./TopBar";
 import Main from "./Main";
 import * as firebase from "firebase";
+import update from 'immutability-helper';
+import StateView from "./StateView";
 
 class App extends Component {
   constructor(props) {
@@ -21,8 +23,9 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <TopBar/>
-        <Main tnq={this.state.tnq}/>
+        <TopBar tnq={this.state.tnq} firebase={this.state.firebase} />
+        <Main tnq={this.state.tnq} firebase={this.state.firebase} />
+        <StateView tnq={this.state.tnq} firebase={this.state.firebase} />
       </div>
     );
   }
@@ -34,30 +37,48 @@ class App extends Component {
 
   initFirebase() {
     try {
-      let firebaseApp = firebase.app();
+      // Initialize Firebase
+      let config = {
+        apiKey: "AIzaSyCez5qhhOn2nHLnps9pup8Fpxn0x2NIK88",
+        authDomain: "frankkienl-tnq.firebaseapp.com",
+        databaseURL: "https://frankkienl-tnq.firebaseio.com",
+        projectId: "frankkienl-tnq",
+        storageBucket: "frankkienl-tnq.appspot.com",
+        messagingSenderId: "178085488605"
+      };
+      firebase.initializeApp(config);
+      //
+      //let firebaseApp = firebase.app();
       const firestore = firebase.firestore();
       const settings = {timestampsInSnapshots: true};
       firestore.settings(settings);
       console.log("Firebase loaded");
       //Let state know Firebase is loaded
-      this.setState((state) => {
-        let oldState = state;
-        oldState.firebaseLoaded = true;
-        return oldState;
+      let newState = update(this.state, {
+        firebase: {loaded: {$set: true}}
       });
+      this.setState(newState);
       //Add auth listener
       firebase.auth().onAuthStateChanged(user => {
-        this.setState((state) => {
-          let oldState = state;
-          if (user) {
-            oldState.firebase.loaded = true;
-            oldState.firebase.user = user;
-            oldState.tnq.loggedIn = true;
-          } else {
-            oldState.tnq.loggedIn = false;
-          }
-          return oldState;
+        console.log(`Firebase auth:`);
+        console.log(user);
+        if (user) {
+          //if logged in, start listener for tnq-user object
+          firestore.doc(`users/${user.uid}`).onSnapshot(userDoc => {
+            let newState = update(this.state, {
+              tnq: {user: {$set: userDoc.data()}}
+            });
+            this.setState(newState);
+          });
+        }
+        let newState = update(this.state, {
+          firebase: {
+            loaded: {$set: !!(user)},
+            user: {$set: user}
+          },
+          tnq: {loggedIn: {$set: !!(user)}}
         });
+        this.setState(newState);
       });
     } catch (e) {
       console.error(e);
