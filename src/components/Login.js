@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import Button from "@material-ui/core/es/Button/Button";
 import CardContent from "@material-ui/core/es/CardContent/CardContent";
 import Card from "@material-ui/core/es/Card/Card";
@@ -10,27 +10,63 @@ import CircularProgress from "@material-ui/core/es/CircularProgress/CircularProg
 
 
 const styles = {
-  card: {
-    minWidth: 275,
-  },
-  bullet: {
-    display: 'inline-block',
-    margin: '0 2px',
-    transform: 'scale(0.8)',
-  },
-  title: {
-    fontSize: 14,
-  },
-  pos: {
-    margin: 12,
-  },
+  cardContent: {
+    alignItems: 'center',
+  }
 };
 
 class Login extends Component {
 
-  componentDidMount() {
-    let ui = new firebaseui.auth.AuthUI(firebase.auth());
-    ui.start('#firebaseui-auth-container', {
+  constructor(props) {
+    super(props);
+    this.state = {showLoading: false};
+  }
+
+  ui;
+  uiLoaded = false;
+
+  render() {
+    if (this.props.firebase.loaded) {
+      if (!this.uiLoaded) {
+        this.initAuthUI();
+      }
+      this.startAuthUI();
+    }
+
+    let output = (
+      <div className='login'>
+        <Card>
+          <CardContent>
+            <Typography component='h1' variant='h5'>
+              Log in
+            </Typography>
+            <div style={{textAlign: 'center'}}>
+              <Button variant='contained' color='primary' onClick={this.loginAnon.bind(this)}
+                      disabled={this.state.showLoading}>
+                Login anonymously
+              </Button>
+              {(this.state.showLoading) ? (
+                <Fragment>
+                  <br/><br/>
+                  <CircularProgress/>
+                </Fragment>) : ''}
+            </div>
+            <div id="firebaseui-auth-container"/>
+          </CardContent>
+        </Card>
+      </div>
+    );
+
+    return output;
+  }
+
+  initAuthUI() {
+    this.ui = new firebaseui.auth.AuthUI(firebase.auth());
+    this.uiLoaded = true;
+  }
+
+  startAuthUI() {
+    this.ui.start('#firebaseui-auth-container', {
       callbacks: {
         signInSuccessWithAuthResult: function (authResult, redirectUrl) {
           // User successfully signed in.
@@ -54,30 +90,21 @@ class Login extends Component {
       ],
       tosUrl: '//frankkienl-tnq.firebaseapp.com/tos.html'
     });
-
   }
 
-
-  render() {
-    return (
-      <div className='login'>
-        <Card>
-          <CardContent>
-            <Typography component='h1' variant='h5'>
-              Log in
-            </Typography>
-            <div className='loader'>
-              {(!this.state.firebase.loaded) ? <CircularProgress />: ''}
-            </div>
-            <Button variant='contained' color='primary'>
-              Login anonymously
-            </Button>
-            <div id="firebaseui-auth-container" />
-          </CardContent>
-        </Card>
-      </div>
-    );
+  loginAnon() {
+    console.log('loginAnon');
+    this.setState({showLoading: true});
+    firebase.auth().signInAnonymously().then(() => {
+      console.log('loginAnon done');
+      this.setState({showLoading: false});
+    }).catch(function (error) {
+      console.log(error);
+      this.setState({showLoading: false});
+    });
   }
+
 }
+
 
 export default withStyles(styles)(Login);
