@@ -12,7 +12,7 @@ class Main extends Component {
     if (!this.props.tnq.loggedIn){
       mainComp = 'login';
     } else if (!(this.props.tnq && this.props.tnq.user && this.props.tnq.user.nickname)){
-      mainComp = 'changeNickname';
+      mainComp = 'handleChangeNickname';
     } else if (!this.props.tnq.user.currentRoom){
       mainComp = 'pickRoom';
     }
@@ -24,7 +24,7 @@ class Main extends Component {
             <Login tnq={this.props.tnq} firebase={this.props.firebase}/>
           </div>
         );
-      case 'changeNickname':
+      case 'handleChangeNickname':
         return (
           <div className="main">
           <ChangeNickname tnq={this.props.tnq} firebase={this.props.firebase}/>
