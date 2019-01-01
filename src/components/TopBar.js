@@ -1,4 +1,4 @@
-import React, { Component } from 'react';
+import React, {Component} from 'react';
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -8,6 +8,14 @@ import MenuItem from "@material-ui/core/MenuItem";
 import AccountCircle from '@material-ui/icons/AccountCircle';
 import {withStyles} from "@material-ui/core/styles";
 import * as firebase from "firebase";
+import Dialog from "@material-ui/core/Dialog";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import TextField from "@material-ui/core/TextField";
+import DialogActions from "@material-ui/core/DialogActions";
+import Button from "@material-ui/core/Button";
+import CircularProgress from "./ChangeNickname";
 
 const styles = {
   root: {
@@ -27,25 +35,49 @@ class TopBar extends Component {
   };
 
   handleChange = event => {
-    this.setState({ auth: event.target.checked });
+    this.setState({auth: event.target.checked});
   };
 
   handleMenu = event => {
-    this.setState({ anchorEl: event.currentTarget });
+    this.setState({anchorEl: event.currentTarget});
   };
 
-  handleClose = () => {
-    this.setState({ anchorEl: null });
+  handleMenuClose = () => {
+    this.setState({anchorEl: null});
+  };
+
+  handleDialogNicknameOpen = () => {
+    this.setState({dialogNicknameOpen: true});
+  };
+
+  handleDialogNicknameSubmit = () => {
+    this.setState({showLoading: true});
+    let changeNick = firebase.functions().httpsCallable('changeNickname');
+    changeNick({nickname: document.getElementById('nickname').value})
+      .then(function (result) {
+        console.log("changed nickname");
+        this.setState({showLoading: false});
+      }).catch((error) => {
+      console.log("changed nickname; error!");
+      console.log(error);
+      this.setState({showLoading: false});
+    });
+    this.handleDialogNicknameClose();
+  };
+
+  handleDialogNicknameClose = () => {
+    this.setState({dialogNicknameOpen: false});
   };
 
   changeNickname = () => {
-    //go to change nickname screen
-    this.handleClose();
+    //open dialog to change nickname
+    this.handleDialogNicknameOpen();
+    this.handleMenuClose();
   };
 
   logout = () => {
     //go to logout screen
-    this.handleClose();
+    this.handleMenuClose();
     let promise = firebase.auth().signOut();
     promise.then(() => {
       console.log('Logged out.');
@@ -56,9 +88,9 @@ class TopBar extends Component {
   };
 
   render() {
-    const { classes } = this.props;
-    const { auth, anchorEl } = this.state;
-    const open = Boolean(anchorEl);
+    const {classes} = this.props;
+    const {auth, anchorEl} = this.state;
+    const menuOpen = Boolean(anchorEl);
 
     return (
       <div className='flexGrow'>
@@ -70,12 +102,12 @@ class TopBar extends Component {
             {this.props.tnq.loggedIn && (
               <div>
                 <IconButton
-                  aria-owns={open ? 'menu-appbar' : undefined}
+                  aria-owns={menuOpen ? 'menu-appbar' : undefined}
                   aria-haspopup="true"
                   onClick={this.handleMenu}
                   color="inherit"
                 >
-                  <AccountCircle />
+                  <AccountCircle/>
                 </IconButton>
                 <Menu
                   id="menu-appbar"
@@ -88,8 +120,8 @@ class TopBar extends Component {
                     vertical: 'top',
                     horizontal: 'right',
                   }}
-                  open={open}
-                  onClose={this.handleClose}
+                  open={menuOpen}
+                  onClose={this.handleMenuClose}
                 >
                   <MenuItem onClick={this.changeNickname}>Change nickname</MenuItem>
                   <MenuItem onClick={this.logout}>Logout</MenuItem>
@@ -98,6 +130,39 @@ class TopBar extends Component {
             )}
           </Toolbar>
         </AppBar>
+
+        <Dialog
+          open={this.state.dialogNicknameOpen}
+          onClose={this.handleDialogNicknameClose}
+          aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title">Change nickname</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Change nickname
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="nickname"
+              label="Nickname"
+              fullWidth
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleDialogNicknameClose} color="primary">
+              Cancel
+            </Button>
+            <Button
+              onClick={this.handleDialogNicknameSubmit}
+              color="primary"
+              disabled={this.state.showNicknameLoading}
+            >
+              Submit
+            </Button>
+            <br/><br/>
+            {(this.state.showNicknameLoading) ? <CircularProgress/> : ''}
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }
