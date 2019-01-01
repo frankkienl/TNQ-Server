@@ -51,17 +51,18 @@ class TopBar extends Component {
   };
 
   handleDialogNicknameSubmit = () => {
-    this.setState({showLoading: true});
+    this.setState({showNicknameLoading: true});
     let changeNick = firebase.functions().httpsCallable('changeNickname');
     changeNick({nickname: document.getElementById('nickname').value})
-      .then(function (result) {
+      .then(() => {
         console.log("changed nickname");
-        this.setState({showLoading: false});
-      }).catch((error) => {
-      console.log("changed nickname; error!");
-      console.log(error);
-      this.setState({showLoading: false});
-    });
+        this.setState({showNicknameLoading: false});
+      })
+      .catch((error) => {
+        console.log("changed nickname; error!");
+        console.log(error);
+        this.setState({showNicknameLoading: false});
+      });
     this.handleDialogNicknameClose();
   };
 
@@ -69,7 +70,7 @@ class TopBar extends Component {
     this.setState({dialogNicknameOpen: false});
   };
 
-  changeNickname = () => {
+  handleChangeNickname = () => {
     //open dialog to change nickname
     this.handleDialogNicknameOpen();
     this.handleMenuClose();
@@ -123,7 +124,7 @@ class TopBar extends Component {
                   open={menuOpen}
                   onClose={this.handleMenuClose}
                 >
-                  <MenuItem onClick={this.changeNickname}>Change nickname</MenuItem>
+                  <MenuItem onClick={this.handleChangeNickname}>Change nickname</MenuItem>
                   <MenuItem onClick={this.logout}>Logout</MenuItem>
                 </Menu>
               </div>
