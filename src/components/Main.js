@@ -9,9 +9,9 @@ class Main extends Component {
 
     let mainComp = null;
     //decide based on props
-    if (!this.props.tnq.loggedIn || !this.props.tnq.user){
+    if (!this.props.tnq.loggedIn){
       mainComp = 'login';
-    } else if (!this.props.tnq.user.nickname){
+    } else if (!(this.props.tnq && this.props.tnq.user && this.props.tnq.user.nickname)){
       mainComp = 'changeNickname';
     } else if (!this.props.tnq.user.currentRoom){
       mainComp = 'pickRoom';
