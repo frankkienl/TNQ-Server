@@ -62,7 +62,7 @@ class ChangeNickname extends Component {
   handleChangeNickname(e) {
     e.preventDefault();
     this.setState({showLoading: true});
-    let changeNick = firebase.functions().httpsCallable('handleChangeNickname');
+    let changeNick = firebase.functions().httpsCallable('changeNickname');
     changeNick({nickname: document.getElementById('nickname').value})
       .then(function (result) {
         console.log("changed nickname");
