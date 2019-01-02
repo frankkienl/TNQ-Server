@@ -34,10 +34,6 @@ class TopBar extends Component {
     anchorEl: null,
   };
 
-  handleChange = event => {
-    this.setState({auth: event.target.checked});
-  };
-
   handleMenu = event => {
     this.setState({anchorEl: event.currentTarget});
   };

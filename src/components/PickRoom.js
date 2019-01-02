@@ -7,6 +7,14 @@ import CardHeader from "@material-ui/core/CardHeader";
 import CardContent from "@material-ui/core/CardContent";
 import CardActions from "@material-ui/core/CardActions";
 import Button from "@material-ui/core/Button";
+import Dialog from "@material-ui/core/Dialog";
+import DialogContent from "@material-ui/core/DialogContent";
+import DialogContentText from "@material-ui/core/DialogContentText";
+import TextField from "@material-ui/core/TextField";
+import DialogActions from "@material-ui/core/DialogActions";
+import DialogTitle from "@material-ui/core/DialogTitle";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import * as firebase from "firebase";
 
 const styles = theme => ({
   layout: {
@@ -32,7 +40,7 @@ const styles = theme => ({
 const choices = [
   {
     title: 'Create room',
-    description: ['You pick the question packs', 'You give the roomcode to your friends', 'You decide pace of the game'],
+    description: ['You pick the question packs', 'Send roomcode to friends', 'You decide pace of the game'],
     buttonText: 'Create a room',
     buttonVariant: 'outlined',
   },
@@ -41,7 +49,7 @@ const choices = [
     subheader: "You're probably looking for this one!",
     description: ['Get a roomcode from a friend', 'Answer questions', 'Vote on the best answers'],
     buttonText: 'Join a room',
-    buttonVariant: 'contained',
+    buttonVariant: 'contained'
   },
   {
     title: 'Spectate room',
@@ -53,9 +61,51 @@ const choices = [
 
 class PickRoom extends Component {
 
+  constructor(props) {
+    super(props);
+    this.state = {dialogRoomcodeOpen: false, roomcodeUpper: ''};
+  }
+
+  handleDialogRoomcodeOpen = () => {
+    this.setState({dialogRoomcodeOpen: true});
+  };
+
+  handleDialogRoomcodeClose = () => {
+    this.setState({dialogRoomcodeOpen: false});
+  };
+
+  handleDialogRoomcodeTfChange = () => {
+    let rawRoomcode = document.getElementById('roomcode').value;
+    let roomcodeUpper = rawRoomcode.toString().substr(0, 5).toUpperCase();
+    this.setState({roomcodeUpper: roomcodeUpper});
+  };
+
+  handleCreateRoom = () => {
+    
+  };
+
+
+  handleDialogRoomcodeSubmit = () => {
+    this.setState({showRoomcodeLoading: true});
+    let joinRoom = firebase.functions().httpsCallable('joinRoom');
+    let roomCodeToJoin = document.getElementById('roomcode').value.toUpperCase();
+    console.log("Trying to join: " + roomCodeToJoin);
+    joinRoom({roomCode: roomCodeToJoin}).then((response) => {
+      console.log('response', response);
+      this.setState({showRoomcodeLoading: false});
+      if (response.data.status === 'room_does_not_exist') {
+        alert("Roomcode does not exist");
+      } else {
+        this.handleDialogRoomcodeClose();
+      }
+    }).catch(() => {
+      alert("Roomcode does not exist");
+      this.setState({showRoomcodeLoading: false});
+    });
+  };
+
   render() {
     const {classes} = this.props;
-    console.log('PickRoom', this.props);
     return (
       <div className='pickRoom'>
         <main className={classes.layout}>
@@ -83,7 +133,12 @@ class PickRoom extends Component {
                     ))}
                   </CardContent>
                   <CardActions className={classes.cardActions}>
-                    <Button fullWidth variant={tier.buttonVariant} color="primary">
+                    <Button
+                      fullWidth
+                      variant={tier.buttonVariant}
+                      onClick={(tier.title === 'Join room') ? this.handleDialogRoomcodeOpen() : (tier.title === 'Create room') ? this.handleCreateRoom : null}
+                      color="primary"
+                    >
                       {tier.buttonText}
                     </Button>
                   </CardActions>
@@ -92,6 +147,41 @@ class PickRoom extends Component {
             ))}
           </Grid>
         </main>
+
+        <Dialog
+          open={this.state.dialogRoomcodeOpen}
+          onClose={this.handleDialogRoomcodeClose}
+          aria-labelledby="form-dialog-title">
+          <DialogTitle id="form-dialog-title">Enter Roomcode</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Join Room, using Roomcode
+            </DialogContentText>
+            <TextField
+              autoFocus
+              margin="dense"
+              id="roomcode"
+              label="Roomcode"
+              value={this.state.roomcodeUpper}
+              fullWidth
+              onChange={this.handleDialogRoomcodeTfChange}
+            />
+            <br/><br/>
+            {(this.state.showRoomcodeLoading) ? <CircularProgress/> : ''}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={this.handleDialogRoomcodeClose} color="primary">
+              Cancel
+            </Button>
+            <Button
+              onClick={this.handleDialogRoomcodeSubmit}
+              color="primary"
+              disabled={this.state.showRoomcodeLoading}
+            >
+              Submit
+            </Button>
+          </DialogActions>
+        </Dialog>
       </div>
     );
   }
