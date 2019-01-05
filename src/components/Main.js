@@ -2,6 +2,7 @@ import React, {Component} from 'react';
 import Login from "./Login";
 import PickRoom from "./PickRoom";
 import ChangeNickname from "./ChangeNickname";
+import Room from "./Room";
 
 class Main extends Component {
 
@@ -9,12 +10,14 @@ class Main extends Component {
 
     let mainComp = null;
     //decide based on props
-    if (!this.props.tnq.loggedIn){
+    if (!this.props.tnq.loggedIn) {
       mainComp = 'login';
-    } else if (!(this.props.tnq && this.props.tnq.user && this.props.tnq.user.nickname)){
+    } else if (!(this.props.tnq && this.props.tnq.user && this.props.tnq.user.nickname)) {
       mainComp = 'handleChangeNickname';
-    } else if (!this.props.tnq.user.currentRoom){
+    } else if (!this.props.tnq.user.currentRoom) {
       mainComp = 'pickRoom';
+    } else if (this.props.tnq.user.currentRoom) {
+      mainComp = 'room';
     }
 
     switch (mainComp) {
@@ -27,13 +30,19 @@ class Main extends Component {
       case 'handleChangeNickname':
         return (
           <div className="main">
-          <ChangeNickname tnq={this.props.tnq} firebase={this.props.firebase}/>
+            <ChangeNickname tnq={this.props.tnq} firebase={this.props.firebase}/>
           </div>
         );
       case 'pickRoom':
         return (
           <div className="main">
             <PickRoom tnq={this.props.tnq} firebase={this.props.firebase}/>
+          </div>
+        );
+      case 'room':
+        return (
+          <div className="main">
+            <Room tnq={this.props.tnq} firebase={this.props.firebase}/>
           </div>
         );
       default:

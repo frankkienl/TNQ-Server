@@ -1,4 +1,4 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import AppBar from "@material-ui/core/AppBar";
 import Toolbar from "@material-ui/core/Toolbar";
 import Typography from "@material-ui/core/Typography";
@@ -97,7 +97,13 @@ class TopBar extends Component {
               TNQ
             </Typography>
             {this.props.tnq.loggedIn && (
-              <div>
+              <Fragment>
+                <Typography color="inherit" variant="h6">
+                  {(this.props.tnq.user &&
+                    this.props.tnq.user.nickname) ?
+                    this.props.tnq.user.nickname : ''}
+                </Typography>
+                &nbsp;
                 <IconButton
                   aria-owns={menuOpen ? 'menu-appbar' : undefined}
                   aria-haspopup="true"
@@ -123,7 +129,7 @@ class TopBar extends Component {
                   <MenuItem onClick={this.handleChangeNickname}>Change nickname</MenuItem>
                   <MenuItem onClick={this.logout}>Logout</MenuItem>
                 </Menu>
-              </div>
+              </Fragment>
             )}
           </Toolbar>
         </AppBar>
