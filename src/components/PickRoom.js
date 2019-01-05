@@ -63,15 +63,15 @@ class PickRoom extends Component {
 
   constructor(props) {
     super(props);
-    this.state = {dialogRoomcodeOpen: false, roomcodeUpper: ''};
+    this.state = {dialogRoomcodeOpen: false, roomcodeUpper: '', buttonsDisabled: false};
   }
 
   handleDialogRoomcodeOpen = () => {
-    this.setState({dialogRoomcodeOpen: true});
+    this.setState({dialogRoomcodeOpen: true, buttonsDisabled: true});
   };
 
   handleDialogRoomcodeClose = () => {
-    this.setState({dialogRoomcodeOpen: false});
+    this.setState({dialogRoomcodeOpen: false, buttonsDisabled: false});
   };
 
   handleDialogRoomcodeTfChange = () => {
@@ -81,18 +81,24 @@ class PickRoom extends Component {
   };
 
   handleCreateRoom = () => {
-    
+    this.setState({buttonsDisabled: true});
+    //Request new room
+    console.log("creating room");
+    let createRoom = firebase.functions().httpsCallable('createRoom');
+    createRoom().then(function (result) {
+      console.log("created roomCode: " + result.data.roomCode);
+    });
   };
 
 
   handleDialogRoomcodeSubmit = () => {
-    this.setState({showRoomcodeLoading: true});
+    this.setState({showRoomcodeLoading: true, buttonsDisabled: true});
     let joinRoom = firebase.functions().httpsCallable('joinRoom');
     let roomCodeToJoin = document.getElementById('roomcode').value.toUpperCase();
     console.log("Trying to join: " + roomCodeToJoin);
     joinRoom({roomCode: roomCodeToJoin}).then((response) => {
       console.log('response', response);
-      this.setState({showRoomcodeLoading: false});
+      this.setState({showRoomcodeLoading: false, buttonsDisabled: false});
       if (response.data.status === 'room_does_not_exist') {
         alert("Roomcode does not exist");
       } else {
@@ -100,7 +106,7 @@ class PickRoom extends Component {
       }
     }).catch(() => {
       alert("Roomcode does not exist");
-      this.setState({showRoomcodeLoading: false});
+      this.setState({showRoomcodeLoading: false, buttonsDisabled: false});
     });
   };
 
@@ -136,8 +142,9 @@ class PickRoom extends Component {
                     <Button
                       fullWidth
                       variant={tier.buttonVariant}
-                      onClick={(tier.title === 'Join room') ? this.handleDialogRoomcodeOpen() : (tier.title === 'Create room') ? this.handleCreateRoom : null}
+                      onClick={(tier.title === 'Join room') ? this.handleDialogRoomcodeOpen : (tier.title === 'Create room') ? this.handleCreateRoom : null}
                       color="primary"
+                      disabled={this.state.buttonsDiabled}
                     >
                       {tier.buttonText}
                     </Button>
