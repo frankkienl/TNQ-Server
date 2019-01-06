@@ -36,7 +36,7 @@
     <div id="players"></div>
 
     <script>
-        var currentRoomcode = "";
+        let roomCode = "";
         document.addEventListener('DOMContentLoaded', function () {
             // The Firebase SDK is initialized
             const firestore = firebase.firestore();
@@ -56,13 +56,13 @@
                         .then(function (doc) {
                             if (doc.exists) {
                                 console.log("Document data:", doc.data());
-                                currentRoomcode = doc.data().currentRoom;
+                                roomCode = doc.data().roomCode;
                                 document.getElementById('welcome').innerText = "Welcome " + doc.data().nickname;
-                                document.getElementById('roomCode').innerText = "Roomcode: " + currentRoomcode;
+                                document.getElementById('roomCode').innerText = "Roomcode: " + roomCode;
 
                                 //start listening for players
                                 firestore
-                                    .collection('rooms').doc(currentRoomcode)
+                                    .collection('rooms').doc(roomCode)
                                     .collection('players').onSnapshot(function (snapshot) {
                                     //console.log(snap);
                                     playerNicknames = []; //reset
@@ -88,9 +88,9 @@
 
                                 //start listening for room status change
                                 firestore
-                                    .collection('rooms').doc(currentRoomcode).onSnapshot(function (snapshot) {
+                                    .collection('rooms').doc(roomCode).onSnapshot(function (snapshot) {
                                     console.log(snapshot.data());
-                                    if (snapshot.data().status !== 'waiting_for_players') {
+                                    if (snapshot.data().status !== 'waitingForPlayers') {
                                         window.location = 'game.html'
                                     }
                                     if (snapshot.data().vip === user.uid) {

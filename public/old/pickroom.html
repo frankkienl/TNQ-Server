@@ -58,8 +58,8 @@
                                 console.log("Document data:", doc.data());
                                 document.getElementById('welcome').innerText = "Welcome " + doc.data().nickname;
 
-                                var currentRoom = doc.data().currentRoom;
-                                if (currentRoom) {
+                                let roomCode = doc.data().roomCode;
+                                if (roomCode) {
                                     //already in a room, skip to next screen
                                     window.location = 'room.html';
                                 }

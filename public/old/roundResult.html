@@ -47,7 +47,7 @@
 
             let user;
             let userUid;
-            let currentRoomCode; //code
+            let roomCodeCode; //code
             let room; //object
             let round;
             let isVip = false;
@@ -84,9 +84,9 @@
 
                 let userSnapshot = await firestore.doc(`users/${userUid}`).get();
                 user = userSnapshot.data();
-                currentRoomCode = user.currentRoom;
+                roomCodeCode = user.roomCode;
 
-                let roomSnapshot = await firestore.doc(`rooms/${currentRoomCode}`).get();
+                let roomSnapshot = await firestore.doc(`rooms/${roomCodeCode}`).get();
                 room = roomSnapshot.data();
                 isVip = room.vip === userUid;
                 if (isVip) {
@@ -96,7 +96,7 @@
                 let roundSnapshot = await firestore.doc(`rooms/${room.status}`).get();
                 round = roundSnapshot.data();
 
-                document.getElementById('roomCode').innerText = currentRoomCode;
+                document.getElementById('roomCode').innerText = roomCodeCode;
 
                 startListeningForRoundStatus();
 
@@ -117,7 +117,7 @@
             }
 
             function startListeningForRoundStatus() {
-                firestore.doc(`rooms/${currentRoomCode}/rounds/${room.status}`)
+                firestore.doc(`rooms/${roomCodeCode}/rounds/${room.status}`)
                     .onSnapshot((roundDoc) => {
                         round = roundDoc.data();
                         if (round.status === 'ended') {
