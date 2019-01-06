@@ -68,7 +68,7 @@ class Room extends Component {
 
   hasCorrectRoomState = () => {
     let tnq = this.props.tnq;
-    let isCorrectRoomState = (tnq && tnq.room && tnq.room.status === 'waiting_for_players');
+    let isCorrectRoomState = (tnq && tnq.room && tnq.room.status === 'waitingForPlayers');
     return isCorrectRoomState;
   };
 
@@ -89,7 +89,7 @@ class Room extends Component {
     let canStart = this.canStart();
     return (
       <div className='room'>
-        <Typography variant="h6">Roomcode: {tnq.user.currentRoom}</Typography>
+        <Typography variant="h6">Roomcode: {tnq.user.roomCode}</Typography>
         <br/>
         {(isVip) ?
           <Fragment>
