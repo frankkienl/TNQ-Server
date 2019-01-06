@@ -6,13 +6,14 @@ const firestore = admin.firestore();
 
 const timeLimitWriteAnswers = 1000 * 60 * 2; //2 min
 const timeLimitVote = 1000 * 30; //30 sec
+const maxRounds = 3;
 
 /**
  * TODO: finish this function
  * used internally
  * Get all info you need
  */
-async function getTnq(context){
+async function getTnq(context) {
     //Make object to return
     let tnq = {};
     //get user
@@ -27,7 +28,7 @@ async function getTnq(context){
  */
 export const createUser = functions.auth.user().onCreate(async (user) => {
     return firestore.doc(`users/${user.uid}`).set(
-        {uid: user.uid, nickname: user.displayName, created_at: new Date()}
+        {uid: user.uid, nickname: user.displayName, createdAt: new Date()}
     );
 });
 
@@ -42,14 +43,14 @@ export const createRoom = functions.https.onCall(async (data, context) => {
     //Create room
     await firestore.doc(`rooms/${roomCode}`).set({
         vip: context.auth.uid,
-        status: 'waiting_for_players',
+        status: 'waitingForPlayers',
         roomCode: roomCode
     });
     console.log(`created room ${roomCode}`);
 
     //Set roomCode in user
     const promiseAddRoomToUser = firestore.doc(`users/${context.auth.uid}`).set({
-        currentRoom: roomCode
+        roomCode: roomCode
     }, {merge: true});
 
     //Set VIP in room
@@ -77,12 +78,12 @@ export const joinRoom = functions.https.onCall(async (data, context) => {
     const roomSnapshot = await firestore.doc(`rooms/${roomCode}`).get();
     if (!roomSnapshot.exists) {
         //throw new Error('room does not exist');
-        return {status: 'room_does_not_exist'};
+        return {status: 'roomDoesNotExist'};
     }
 
     //Set roomCode in user
     let promiseAddRoomToUser = firestore.doc(`users/${context.auth.uid}`).set({
-        currentRoom: roomCode
+        roomCode: roomCode
     }, {merge: true});
 
     //Get user
@@ -115,9 +116,9 @@ export const changeNickname = functions.https.onCall(async (data, context) => {
     //Get user (to see which room)
     let userSnapshot = await firestore.doc(`users/${context.auth.uid}`).get();
     let user = userSnapshot.data();
-    if (user.currentRoom != null) {
+    if (user.roomCode != null) {
         //User is in a room
-        await firestore.doc(`rooms/${user.currentRoom}/players/${context.auth.uid}`).set({
+        await firestore.doc(`rooms/${user.roomCode}/players/${context.auth.uid}`).set({
             nickname: data.nickname
         }, {merge: true});
     }
@@ -138,22 +139,22 @@ export const answerQuestion = functions.https.onCall(async (data, context) => {
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let room = roomSnapshot.data();
-    let roundSnapshot = await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).get();
+    let roundSnapshot = await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}`).get();
     if (!roundSnapshot.exists) {
-        throw new Error(`Round ${room.status} in room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Round ${room.status} in room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let round = roundSnapshot.data();
-    if (round.status !== 'write_answers') {
-        //check if round still in write_answers fase, (not gone to voting fase)
-        throw new Error(`Round ${room.status} 's status is not 'write answers' but '${round.status}' in room ${user.currentRoom}, user ${user.uid}`);
+    if (round.status !== 'writeAnswers') {
+        //check if round still in writeAnswers fase, (not gone to voting fase)
+        throw new Error(`Round ${room.status} 's status is not 'write answers' but '${round.status}' in room ${user.roomCode}, user ${user.uid}`);
     }
 
     //Check if this user is allowed to answer this question
@@ -165,12 +166,12 @@ export const answerQuestion = functions.https.onCall(async (data, context) => {
         }
     });
     if (!isForMe) {
-        throw new Error(`Question ${answeredQuestionId} is not for user ${user.uid} to answer, in round ${room.status}, in room ${user.currentRoom}`);
+        throw new Error(`Question ${answeredQuestionId} is not for user ${user.uid} to answer, in round ${room.status}, in room ${user.roomCode}`);
     }
     //User is allowed to answer this question
     //Check time limit
     let tooLate = false;
-    if ((Date.parse(round.started_at_wa) < Date.now() - (timeLimitWriteAnswers))) {
+    if ((Date.parse(round.writeAnswersStartedAt) < Date.now() - (timeLimitWriteAnswers))) {
         //too late, but let's not enforce it.
         //Just mention it with the answer
         tooLate = true;
@@ -181,11 +182,11 @@ export const answerQuestion = functions.https.onCall(async (data, context) => {
         toWrite['tooLate'] = true;
     }
     //Write answer
-    await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}/answers/${user.uid}`)
+    await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}/answers/${user.uid}`)
         .set(toWrite, {merge: true});
 
     //Check if user has answered all his questions
-    let userAnswersSnapshot = await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}/answers/${user.uid}`).get();
+    let userAnswersSnapshot = await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}/answers/${user.uid}`).get();
     let userAnswers = userAnswersSnapshot.data();
     let userAllAnswered = true;
     questionsForUser.forEach((questionId) => {
@@ -194,11 +195,11 @@ export const answerQuestion = functions.https.onCall(async (data, context) => {
         }
     });
     if (userAllAnswered) {
-        await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}/players_done/${user.uid}`)
+        await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}/playersDone/${user.uid}`)
             .set({done: true});
 
         //Now check if the other players are done too.
-        await allAnswered(user.currentRoom, room.status);
+        await allAnswered(user.roomCode, room.status);
     }
 });
 
@@ -207,12 +208,12 @@ export const answerQuestion = functions.https.onCall(async (data, context) => {
  * Called when playerDone is written in round.
  * When all users are done writing answers, advance round to voting fase.
  */
-async function allAnswered(roomCode, roundNr) {
+async function allAnswered(roomCode, roundId) {
     //When a playerDone is written, check if all players are done.
     //If so go to next fase.
 
     //Players who are done
-    let promisePlayerDoneCollection = firestore.collection(`rooms/${roomCode}/rounds/${roundNr}/players_done`).get();
+    let promisePlayerDoneCollection = firestore.collection(`rooms/${roomCode}/rounds/${roundId}/playersDone`).get();
 
     //Players who should be done
     let promisePlayersInRoom = firestore.collection(`rooms/${roomCode}/players`).get();
@@ -222,7 +223,7 @@ async function allAnswered(roomCode, roundNr) {
     let playersInRoom = results[1];
     if (playersDone.size === playersInRoom.size) {
         console.log("all questions are answered");
-        await goToVotingFase(roomCode, roundNr);
+        await goToVotingFase(roomCode, roundId);
     }
 }
 
@@ -240,46 +241,46 @@ export const vipEndWritingAnswers = functions.https.onCall(async (data, context)
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let room = roomSnapshot.data();
     if (room.vip !== context.auth.uid) {
-        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.currentRoom}`);
+        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.roomCode}`);
     }
-    let roundSnapshot = await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).get();
+    let roundSnapshot = await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}`).get();
     if (!roundSnapshot.exists) {
-        throw new Error(`Round ${room.status} in room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Round ${room.status} in room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let round = roundSnapshot.data();
-    if (round.status !== 'write_answers') {
-        //check if round still in write_answers fase, (not gone to voting fase)
-        throw new Error(`Round ${room.status} 's status is not 'write answers' but '${round.status}' in room ${user.currentRoom}, user ${user.uid}`);
+    if (round.status !== 'writeAnswers') {
+        //check if round still in writeAnswers fase, (not gone to voting fase)
+        throw new Error(`Round ${room.status} 's status is not 'write answers' but '${round.status}' in room ${user.roomCode}, user ${user.uid}`);
     }
     //Check time limit
-    if ((Date.parse(round.started_at_wa) > Date.now() - (timeLimitWriteAnswers))) {
+    if ((Date.parse(round.writeAnswersStartedAt) > Date.now() - (timeLimitWriteAnswers))) {
         //Time not over yet
-        throw new Error(`Cannot skip to voting, time limit not over yet. Round ${room.status} in room ${user.currentRoom}, user ${user.uid}`);
+        throw new Error(`Cannot skip to voting, time limit not over yet. Round ${room.status} in room ${user.roomCode}, user ${user.uid}`);
     }
 
     //Time limit is over, the user is the VIP
     //So we can skip to voting.
-    await goToVotingFase(user.currentRoom, room.status);
+    await goToVotingFase(user.roomCode, room.status);
 });
 
 /**
  * Go to voting fase
  * @param roomCode
- * @param roundNr
+ * @param roundId
  * @returns {Promise<any>}
  */
-async function goToVotingFase(roomCode, roundNr) {
-    await firestore.doc('rooms/' + roomCode + '/rounds/' + roundNr).set({status: 'vote'}, {merge: true});
-    await prepareVoting(roomCode, roundNr);
+async function goToVotingFase(roomCode, roundId) {
+    await firestore.doc('rooms/' + roomCode + '/rounds/' + roundId).set({status: 'vote'}, {merge: true});
+    await prepareVoting(roomCode, roundId);
 }
 
 /**
@@ -293,70 +294,70 @@ export const vipNextVote = functions.https.onCall(async (data, context) => {
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let room = roomSnapshot.data();
     if (room.vip !== context.auth.uid) {
-        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.currentRoom}`);
+        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.roomCode}`);
     }
-    let roundSnapshot = await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).get();
+    let roundSnapshot = await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}`).get();
     if (!roundSnapshot.exists) {
-        throw new Error(`Round ${room.status} in room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Round ${room.status} in room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let round = roundSnapshot.data();
     if (round.status !== 'voteResult') {
-        //check if round still in write_answers fase, (not gone to voting fase)
-        throw new Error(`Round ${room.status} 's status is not 'voteResult' but '${round.status}' in room ${user.currentRoom}, user ${user.uid}`);
+        //check if round still in writeAnswers fase, (not gone to voting fase)
+        throw new Error(`Round ${room.status} 's status is not 'voteResult' but '${round.status}' in room ${user.roomCode}, user ${user.uid}`);
     }
-    await goToVotingFase(user.currentRoom, room.status);
+    await goToVotingFase(user.roomCode, room.status);
 });
 
 /**
  * Prepare vote of question with index
  * @param roomCode
- * @param roundNr
+ * @param roundId
  * @returns {Promise<void>}
  */
-async function prepareVoting(roomCode, roundNr) {
+async function prepareVoting(roomCode, roundId) {
     console.log("prepare voting");
-    const roundSnapshot = await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`).get();
+    const roundSnapshot = await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`).get();
     const round = roundSnapshot.data();
     if (round.status !== 'vote') {
-        throw new Error(`Round ${roundNr} of room ${roomCode} is not in voting fase`);
+        throw new Error(`Round ${roundId} of room ${roomCode} is not in voting fase`);
     }
 
     //Set index of (next) question to vote for
     let index = 0; //array's start at 0
-    if (round.vote_question_index != null) {
-        index = round.vote_question_index + 1;
+    if (round.votingQuestionIndex != null) {
+        index = round.votingQuestionIndex + 1;
     }
     //Check if there actually is a next question to vote for, otherwise, go to results.
     let numberOfPlayers = Object.keys(round.questionsPerUser).length;
     if (index >= numberOfPlayers) {
         console.log("No next voting, go to results");
         //No next voting, go to results
-        await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`)
+        await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`)
             .set({
                     status: 'results', //set new status
-                    started_at_wa: null, //remove old data
-                    started_at_v: null,
-                    vote_question_index: null
+                    writeAnswersStartedAt: null, //remove old data
+                    votingStartedAt: null,
+                    votingQuestionIndex: null
                 },
                 {merge: true});
-        //Clear players_done
-        await deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundNr}/players_done`, 100);
+        //Clear playersDone
+        await deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundId}/playersDone`, 100);
     } else {
         //Lets vote
-        //Clear players_done
-        await deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundNr}/players_done`, 100);
+        //Clear playersDone
+        await deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundId}/playersDone`, 100);
         //set next question to vote for
-        await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`)
-            .set({started_at_v: new Date(), vote_question_index: index},
+        await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`)
+            .set({votingStartedAt: new Date(), votingQuestionIndex: index},
                 {merge: true});
     }
 }
@@ -369,22 +370,22 @@ export const voteForAnswer = functions.https.onCall(async (data, context) => {
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let room = roomSnapshot.data();
-    let roundSnapshot = await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).get();
+    let roundSnapshot = await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}`).get();
     if (!roundSnapshot.exists) {
-        throw new Error(`Round ${room.status} in room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Round ${room.status} in room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let round = roundSnapshot.data();
     if (round.status !== 'vote') {
-        //check if round still in write_answers fase, (not gone to voting fase)
-        throw new Error(`Round ${room.status} 's status is not 'vote' but '${round.status}' in room ${user.currentRoom}, user ${user.uid}`);
+        //check if round still in writeAnswers fase, (not gone to voting fase)
+        throw new Error(`Round ${room.status} 's status is not 'vote' but '${round.status}' in room ${user.roomCode}, user ${user.uid}`);
     }
 
     //Check if this user is allowed to vote for this question
@@ -396,12 +397,12 @@ export const voteForAnswer = functions.https.onCall(async (data, context) => {
         }
     });
     if (!allowedToVote) {
-        throw new Error(`Question ${votedQuestionId} is not for user ${user.uid} to vote for, in round ${room.status}, in room ${user.currentRoom}`);
+        throw new Error(`Question ${votedQuestionId} is not for user ${user.uid} to vote for, in round ${room.status}, in room ${user.roomCode}`);
     }
     //User is allowed to answer this question
     //Check time limit
     let tooLate = false;
-    if ((Date.parse(round.started_at_wa) < Date.now() - (timeLimitVote))) {
+    if ((Date.parse(round.writeAnswersStartedAt) < Date.now() - (timeLimitVote))) {
         //too late, but let's not enforce it.
         //Just mention it with the answer
         tooLate = true;
@@ -412,21 +413,21 @@ export const voteForAnswer = functions.https.onCall(async (data, context) => {
         toWrite['tooLate'] = true;
     }
     //Write answer
-    await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}/votes/${user.uid}`)
+    await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}/votes/${user.uid}`)
         .set(toWrite, {merge: true});
     //When voted, this player is done
-    await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}/players_done/${user.uid}`)
+    await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}/playersDone/${user.uid}`)
         .set({done: true});
     //Now check if other players are done too.
-    await allVoted(user.currentRoom, room.status);
+    await allVoted(user.roomCode, room.status);
 });
 
-async function allVoted(roomCode, roundNr) {
+async function allVoted(roomCode, roundId) {
     //When a playerDone is written, check if all players are done.
     //If so go to vote result (and then to next voting).
 
     //Players who are done
-    let promisePlayerDoneCollection = firestore.collection(`rooms/${roomCode}/rounds/${roundNr}/players_done`).get();
+    let promisePlayerDoneCollection = firestore.collection(`rooms/${roomCode}/rounds/${roundId}/playersDone`).get();
 
     //Players who should be done
     let promisePlayersInRoom = firestore.collection(`rooms/${roomCode}/players`).get();
@@ -437,7 +438,7 @@ async function allVoted(roomCode, roundNr) {
     //playersDone.size - 2, because 2 players are NOT allowed to vote.
     if (playersDone.size === (playersInRoom.size - 2)) {
         //show voting result
-        await prepareVotingResult(roomCode, roundNr);
+        await prepareVotingResult(roomCode, roundId);
     }
 }
 
@@ -454,54 +455,54 @@ export const vipEndVoting = functions.https.onCall(async (data, context) => {
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let room = roomSnapshot.data();
     if (room.vip !== context.auth.uid) {
-        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.currentRoom}`);
+        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.roomCode}`);
     }
-    let roundSnapshot = await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).get();
+    let roundSnapshot = await firestore.doc(`rooms/${user.roomCode}/rounds/${room.status}`).get();
     if (!roundSnapshot.exists) {
-        throw new Error(`Round ${room.status} in room ${user.currentRoom} does not exist, user ${user.uid}`);
+        throw new Error(`Round ${room.status} in room ${user.roomCode} does not exist, user ${user.uid}`);
     }
     let round = roundSnapshot.data();
     if (round.status !== 'vote') {
-        //check if round still in write_answers fase, (not gone to voting fase)
-        throw new Error(`Round ${room.status} 's status is not 'vote' but '${round.status}' in room ${user.currentRoom}, user ${user.uid}`);
+        //check if round still in writeAnswers fase, (not gone to voting fase)
+        throw new Error(`Round ${room.status} 's status is not 'vote' but '${round.status}' in room ${user.roomCode}, user ${user.uid}`);
     }
     //Check time limit
-    if ((Date.parse(round.started_at_wa) > Date.now() - (timeLimitVote))) {
+    if ((Date.parse(round.writeAnswersStartedAt) > Date.now() - (timeLimitVote))) {
         //Time not over yet
-        throw new Error(`Cannot skip voting, time limit not over yet. Round ${room.status} in room ${user.currentRoom}, user ${user.uid}`);
+        throw new Error(`Cannot skip voting, time limit not over yet. Round ${room.status} in room ${user.roomCode}, user ${user.uid}`);
     }
 
     //Time limit is over, the user is the VIP
     //So we can skip to voting result.
-    await prepareVotingResult(user.currentRoom, room.status);
+    await prepareVotingResult(user.roomCode, room.status);
 });
 
 
-async function prepareVotingResult(roomCode, roundNr) {
+async function prepareVotingResult(roomCode, roundId) {
     //Get room
-    console.log(`prepareVotingResult: ${roomCode}, ${roundNr}`);
+    console.log(`prepareVotingResult: ${roomCode}, ${roundId}`);
     let roomSnapshot = await firestore.doc(`rooms/${roomCode}`).get();
 
-    let roundSnapshot = await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`).get();
+    let roundSnapshot = await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`).get();
     let round = roundSnapshot.data();
 
-    let questionIndex = round.vote_question_index;
+    let questionIndex = round.votingQuestionIndex;
 
     //Get question
     const questionNumber = questionIndex + 1; //array starts at 0
-    console.log(`prepareVotingResult; index=${questionIndex} number=${questionNumber} -- rooms/${roomCode}/rounds/${roundNr}/questions/question${questionNumber}`);
+    console.log(`prepareVotingResult; index=${questionIndex} number=${questionNumber} -- rooms/${roomCode}/rounds/${roundId}/questions/question${questionNumber}`);
 
     let questionSnapshot = await firestore
-        .doc(`rooms/${roomCode}/rounds/${roundNr}/questions/question${questionNumber}`)
+        .doc(`rooms/${roomCode}/rounds/${roundId}/questions/question${questionNumber}`)
         .get();
     let question = questionSnapshot.data();
     let questionId = questionSnapshot.id;
@@ -509,11 +510,11 @@ async function prepareVotingResult(roomCode, roundNr) {
     console.log(`prepareVotingResult:: ${questionId} -- ${question.question.question}`);
 
     //Get votes
-    let votesCollection = await firestore.collection(`rooms/${roomCode}/rounds/${roundNr}/votes`).get();
+    let votesCollection = await firestore.collection(`rooms/${roomCode}/rounds/${roundId}/votes`).get();
 
     console.log(`prepareVotingResult:; votesCollection `);
 
-    //Copy to vote_results
+    //Copy to voteResults
     let leftVotes = [];
     let rightVotes = [];
 
@@ -539,31 +540,31 @@ async function prepareVotingResult(roomCode, roundNr) {
 
     console.log(`prepareVotingResult;; ${toWrite}`);
 
-    await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}/vote_results/question${questionNumber}`)
+    await firestore.doc(`rooms/${roomCode}/rounds/${roundId}/voteResults/question${questionNumber}`)
         .set(toWrite);
 
     //add points to players
-    if (leftVotes.length > 0){
+    if (leftVotes.length > 0) {
         let playerDoc = await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).get();
         let player = playerDoc.data();
-        if (!player.score){
-            await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({score: leftVotes.length},{merge:true});
+        if (!player.score) {
+            await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({score: leftVotes.length}, {merge: true});
         } else {
-            await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({score: (player.score + leftVotes.length)},{merge:true});
+            await firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({score: (player.score + leftVotes.length)}, {merge: true});
         }
     }
-    if (rightVotes.length > 0){
+    if (rightVotes.length > 0) {
         let playerDoc = await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).get();
         let player = playerDoc.data();
-        if (!player.score){
-            await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({score: leftVotes.length},{merge:true});
+        if (!player.score) {
+            await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({score: leftVotes.length}, {merge: true});
         } else {
-            await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({score: (player.score + leftVotes.length)},{merge:true});
+            await firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({score: (player.score + leftVotes.length)}, {merge: true});
         }
     }
 
     //show vote result
-    await firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`)
+    await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`)
         .set({status: 'voteResult'}, {merge: true});
 }
 
@@ -590,7 +591,7 @@ export const removeUserFromRoom = functions.https.onCall(async (data, context) =
             throw new Error(`User ${userUidToRemove} does not exist`);
         }
         let userToRemove = userSnapshot.data();
-        if (userToRemove.currentRoom == null) {
+        if (userToRemove.roomCode == null) {
             //user not in a room, done here
             return;
         }
@@ -602,27 +603,27 @@ export const removeUserFromRoom = functions.https.onCall(async (data, context) =
                 throw new Error(`Caller ${context.auth.uid} does not exist`);
             }
             let caller = callerSnapshot.data();
-            if (caller.currency !== userToRemove.currentRoom) {
-                throw new Error(`Caller ${context.auth.uid} and User ${userUidToRemove} are not in the same room. ${caller.currentRoom} & ${userToRemove.currentRoom}`);
+            if (caller.currency !== userToRemove.roomCode) {
+                throw new Error(`Caller ${context.auth.uid} and User ${userUidToRemove} are not in the same room. ${caller.roomCode} & ${userToRemove.roomCode}`);
             }
-            let callerRoomSnapshot = await firestore.doc(`rooms/${caller.currentRoom}`).get();
+            let callerRoomSnapshot = await firestore.doc(`rooms/${caller.roomCode}`).get();
             if (!callerRoomSnapshot.exists) {
-                throw new Error(`Room ${caller.currentRoom} does not exist`);
+                throw new Error(`Room ${caller.roomCode} does not exist`);
             }
             let callerRoom = callerRoomSnapshot.data();
             if (callerRoom.vip !== context.auth.uid) {
-                throw new Error(`Caller ${context.auth.uid} is not the VIP of room ${caller.currentRoom}`);
+                throw new Error(`Caller ${context.auth.uid} is not the VIP of room ${caller.roomCode}`);
             }
             //Kick user
             //Remove user from room
-            await firestore.doc(`rooms/${caller.currentRoom}/players/${userUidToRemove}`).delete();
+            await firestore.doc(`rooms/${caller.roomCode}/players/${userUidToRemove}`).delete();
             //Remove room from user
-            await firestore.doc(`users/${userUidToRemove}`).set({currentRoom: null}, {merge: true});
+            await firestore.doc(`users/${userUidToRemove}`).set({roomCode: null}, {merge: true});
         } else {
             //Removing self
-            let userRoomSnapshot = await firestore.doc(`rooms/${userToRemove.currentRoom}`).get();
+            let userRoomSnapshot = await firestore.doc(`rooms/${userToRemove.roomCode}`).get();
             if (!userRoomSnapshot.exists) {
-                throw new Error(`Room ${userToRemove.currentRoom} does not exist, user ${userUidToRemove}`);
+                throw new Error(`Room ${userToRemove.roomCode} does not exist, user ${userUidToRemove}`);
             }
             const userRoom = userRoomSnapshot.data();
             let userIsVip = (userRoom.vip === userUidToRemove && userUidToRemove === context.auth.uid);
@@ -634,16 +635,16 @@ export const removeUserFromRoom = functions.https.onCall(async (data, context) =
                     await userRoomSnapshot.ref.delete();
                 } else {
                     //soft delete
-                    await firestore.doc(`rooms/${userToRemove.currentRoom}`).set({
+                    await firestore.doc(`rooms/${userToRemove.roomCode}`).set({
                         status: 'deleted',
-                        deleted_at: new Date()
+                        deletedAt: new Date()
                     }, {merge: true});
                 }
             } else {
                 //Remove user from room
-                await firestore.doc(`rooms/${userToRemove.currentRoom}/players/${userUidToRemove}`).delete();
+                await firestore.doc(`rooms/${userToRemove.roomCode}/players/${userUidToRemove}`).delete();
                 //Remove room from user
-                await firestore.doc(`users/${userUidToRemove}`).set({currentRoom: null}, {merge: true});
+                await firestore.doc(`users/${userUidToRemove}`).set({roomCode: null}, {merge: true});
             }
         }
     }
@@ -658,41 +659,46 @@ export const startGame = functions.https.onCall(async (data, context) => {
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} is not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${context.auth.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${context.auth.uid}`);
     }
     let room = roomSnapshot.data();
     if (room.vip !== context.auth.uid) {
-        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.currentRoom}`);
+        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.roomCode}`);
     }
 
-    if (room.status !== 'waiting_for_players') {
-        throw new Error(`Room ${user.currentRoom} already started`);
+    if (room.status !== 'waitingForPlayers') {
+        throw new Error(`Room ${user.roomCode} already started`);
     }
 
-    let playersCollection = await firestore.collection(`rooms/${user.currentRoom}/players`).get();
+    let playersCollection = await firestore.collection(`rooms/${user.roomCode}/players`).get();
     if (playersCollection.size < 3) {
-        throw new Error(`Room ${user.currentRoom} does not have enough players`);
+        throw new Error(`Room ${user.roomCode} does not have enough players`);
     }
 
     if (room.questionPacks === undefined || room.questionPacks == null || room.questionPacks.length === 0) {
         if (!addDefaultquestionPacks) {
-            throw new Error(`No questionPacks in room ${user.currentRoom}`);
+            throw new Error(`No questionPacks in room ${user.roomCode}`);
         }
         //Not enough questionPacks, add default
-        await firestore.doc(`rooms/${user.currentRoom}`).set({questionPacks: defaultquestionPacks}, {merge: true});
+        await firestore.doc(`rooms/${user.roomCode}`).set({questionPacks: defaultquestionPacks}, {merge: true});
     }
 
-    await prepareRound(user.currentRoom, playersCollection, 1);
+    await prepareRound(user.roomCode, playersCollection, 0);
 
-    await firestore.doc(`rooms/${user.currentRoom}`).set({status: 'round1'}, {merge: true});
+    await firestore.doc(`rooms/${user.roomCode}`).set({
+        status: 'round1',
+        roundIndex: 0,
+        roundId: 'round1'
+    }, {merge: true});
 });
 
-async function prepareRound(roomCode, playerCollection, roundNr) {
+async function prepareRound(roomCode, playerCollection, roundIndex) {
+    const roundId = 'round' + (roundIndex + 1);
     //get number of players
     const nrOfPlayers = playerCollection.size;
 
@@ -751,17 +757,18 @@ async function prepareRound(roomCode, playerCollection, roundNr) {
         questionsPerUser[rightPlayer].push('question' + i);
 
         let promiseWriteQuestion =
-            firestore.doc(`rooms/${roomCode}/rounds/round${roundNr}/questions/question${i}`)
+            firestore.doc(`rooms/${roomCode}/rounds/${roundId}/questions/question${i}`)
                 .set(questionObjectToSet);
         promiseWrites.push(promiseWriteQuestion);
     }
     //Write round object itself
     let promiseWriteRound =
-        firestore.doc(`rooms/${roomCode}/rounds/round${roundNr}`)
+        firestore.doc(`rooms/${roomCode}/rounds/${roundId}`)
             .set({
-                roundnumber: roundNr,
-                status: 'write_answers',
-                started_at_wa: new Date(),
+                roundId: roundId,
+                roundIndex: roundIndex,
+                status: 'writeAnswers',
+                writeAnswersStartedAt: new Date(),
                 questionsPerUser: questionsPerUser
             }, {merge: true});
     promiseWrites.push(promiseWriteRound);
@@ -778,39 +785,38 @@ export const vipGoToNextRound = functions.https.onCall(async (data, context) => 
         throw new Error(`User ${context.auth.uid} does not exist`);
     }
     let user = userSnapshot.data();
-    if (user.currentRoom == null) {
+    if (user.roomCode == null) {
         throw new Error(`User ${context.auth.uid} is not in a room`);
     }
-    let roomSnapshot = await firestore.doc(`rooms/${user.currentRoom}`).get();
+    let roomSnapshot = await firestore.doc(`rooms/${user.roomCode}`).get();
     if (!roomSnapshot.exists) {
-        throw new Error(`Room ${user.currentRoom} does not exist, user ${context.auth.uid}`);
+        throw new Error(`Room ${user.roomCode} does not exist, user ${context.auth.uid}`);
     }
     let room = roomSnapshot.data();
     if (room.vip !== context.auth.uid) {
-        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.currentRoom}`);
+        throw new Error(`User ${context.auth.uid} is not the VIP of room ${user.roomCode}`);
     }
 
-    let playersCollection = await firestore.collection(`rooms/${user.currentRoom}/players`).get();
+    let playersCollection = await firestore.collection(`rooms/${user.roomCode}/players`).get();
 
     //TODO: FIXME: use some proper number formatting!!
-    let roundNumber = 0;
-    if (room.status == 'round1') {
-        roundNumber = 1;
-    } else if (room.status == 'round2') {
-        roundNumber = 2;
-    } else if (room.status == 'round3') {
-        roundNumber = 3;
-    }
-    roundNumber += 1;
-    if (roundNumber > 3) {
+    let roundIndex = room.roundIndex;
+    let roundId = room.roundId;
+    roundIndex += 1;
+    roundId = 'round' + (roundIndex+1);
+    if (roundIndex > (maxRounds - 1)) {  //index starts at 0 ;-)
         //game is over
-        await firestore.doc(`rooms/${user.currentRoom}`).set({status: `game_over`}, {merge: true});
-        await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).set({status: 'ended'},{merge: true});
+        await firestore.doc(`rooms/${user.roomCode}`).set({status: `gameOver`}, {merge: true});
+        await firestore.doc(`rooms/${user.roomCode}/rounds/${room.roundId}`).set({status: 'ended'}, {merge: true});
     } else {
-        await prepareRound(user.currentRoom, playersCollection, roundNumber);
+        await prepareRound(user.roomCode, playersCollection, roundIndex);
 
-        await firestore.doc(`rooms/${user.currentRoom}/rounds/${room.status}`).set({status: 'ended'},{merge: true});
-        await firestore.doc(`rooms/${user.currentRoom}`).set({status: `round${roundNumber}`}, {merge: true});
+        await firestore.doc(`rooms/${user.roomCode}/rounds/${room.roundId}`).set({status: 'ended'}, {merge: true});
+        await firestore.doc(`rooms/${user.roomCode}`).set({
+            status: roundId,
+            roundIndex: roundIndex,
+            roundId: roundId
+        }, {merge: true});
     }
 });
 
@@ -841,14 +847,14 @@ exports.ftnqCleanupAnonUsers = functions.https.onCall(async (data, context) => {
  * @returns {Promise<string>}
  */
 async function getUniqueRoomCode() {
-    let currentRoomCode = "";
+    let roomCodeCode = "";
     let maxTries = 10;
     for (let i = 0; i < maxTries; i++) {
-        currentRoomCode = randomRoomCode();
-        let roomDoc = await firestore.doc('rooms/' + currentRoomCode).get();
+        roomCodeCode = randomRoomCode();
+        let roomDoc = await firestore.doc('rooms/' + roomCodeCode).get();
         if (!roomDoc.exists) {
             //Room does not exist, meaning roomCode is unique, and ready to be used.
-            return currentRoomCode;
+            return roomCodeCode;
         }
     }
     throw new Error('cannot find unique roomCode');

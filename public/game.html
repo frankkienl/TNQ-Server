@@ -49,22 +49,22 @@
                 console.log("user:", userDoc.data());
                 document.getElementById('welcome').innerText = "Welcome " + userDoc.data().nickname;
 
-                let currentRoom = userDoc.data().currentRoom;
-                if (!currentRoom) {
+                let roomCode = userDoc.data().roomCode;
+                if (!roomCode) {
                   //not in a room
                   window.location = 'index.html';
                   return;
                 }
 
                 firestore
-                  .collection('rooms').doc(currentRoom)
+                  .collection('rooms').doc(roomCode)
                   .get().then((roomDoc) => {
                   //check room status
                   if (!roomDoc.exists) {
                     //room does not exist
                     //window.location = 'logout.html';
                     alert('Room does not exist');
-                    //going to logout will erase the currentRoom from the user
+                    //going to logout will erase the roomCode from the user
                     return;
                   }
 
@@ -74,17 +74,17 @@
                     //room deleted
                     //window.location = 'logout.html';
                     alert('room is deleted');
-                    //going to logout will erase the currentRoom from the user
+                    //going to logout will erase the roomCode from the user
                     return;
                   }
 
-                  if (room.status === 'waiting_for_players') {
+                  if (room.status === 'waitingForPlayers') {
                     //room not started
                     window.location = 'room.html';
                     return;
                   }
 
-                  if (room.status === 'game_over') {
+                  if (room.status === 'gameOver') {
                     alert('Game over - Thanks for playing!');
                     window.location = 'logout.html';
                     return;
@@ -96,7 +96,7 @@
                     //status is of a round
                     //get round
                     firestore
-                      .collection('rooms').doc(currentRoom)
+                      .collection('rooms').doc(roomCode)
                       .collection('rounds').doc(room.status).get()
                       .then((roundDoc) => {
                         if (!roundDoc.exists) {
@@ -107,7 +107,7 @@
                         }
 
                         let round = roundDoc.data();
-                        if (round.status === 'write_answers') {
+                        if (round.status === 'writeAnswers') {
                           window.location = 'answerQuestions.html';
                         }
                       });

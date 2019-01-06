@@ -40,19 +40,19 @@
         </button>
     </div>
 
-    <div id="players_done"><br/></div>
+    <div id="playersDone"><br/></div>
 
     <script>
         //
         let firestore;
-        let currentRoom;
+        let roomCode;
         let room;
         let round;
         let questionsPerUser; //object field per user
         let questionIdsForMe = []; //array of question-objects
         let questionsForMe = []; //array of questionObjects
-        let currentQuestionIndex = 0;
-        let started_at_wa; //when the round started, used when calculating time left.
+        let questionIndex = 0;
+        let writeAnswersStartedAt; //when the round started, used when calculating time left.
         let isVip = false;
         let players = [];
         let playersDone = [];
@@ -71,9 +71,9 @@
                     firestore
                         .collection('users').doc(user.uid).get()
                         .then((userDoc) => {
-                            currentRoom = userDoc.data().currentRoom;
+                            roomCode = userDoc.data().roomCode;
                             return firestore
-                                .collection('rooms').doc(currentRoom)
+                                .collection('rooms').doc(roomCode)
                                 .get();
                         })
                         .then((roomDoc) => {
@@ -84,14 +84,14 @@
                             }
                             console.log(room);
                             return firestore
-                                .collection('rooms').doc(currentRoom)
+                                .collection('rooms').doc(roomCode)
                                 .collection('rounds').doc(room.status).get();
                         })
                         .then((roundDoc) => {
                             console.log('roundDoc');
                             round = roundDoc.data();
                             //console.log(round);
-                            started_at_wa = round.started_at_wa;
+                            writeAnswersStartedAt = round.writeAnswersStartedAt;
                             questionsPerUser = round.questionsPerUser; //object (map)
                             //console.log(questionsPerUser);
                             questionIdsForMe = questionsPerUser[user.uid]; //array
@@ -100,7 +100,7 @@
                             questionIdsForMe.forEach((questionId) => {
                                 qPromises.push(
                                     firestore
-                                        .collection('rooms').doc(currentRoom)
+                                        .collection('rooms').doc(roomCode)
                                         .collection('rounds').doc(room.status)
                                         .collection('questions').doc(questionId).get()
                                         .then((questionDoc) => {
@@ -115,7 +115,7 @@
                                 //Show questions on screen to answer
                                 showQuestion();
                             });
-                            //start checking for round status, it'll soon change from 'write_answers' to 'vote'.
+                            //start checking for round status, it'll soon change from 'writeAnswers' to 'vote'.
                             startListeningForRoundStatus();
                             startListeningForPlayersDone();
                         })
@@ -141,7 +141,7 @@
         function showQuestion() {
             document.getElementById('loading').style.display = 'none';
             let html = '';
-            let currentQuestion = questionsForMe[currentQuestionIndex];
+            let currentQuestion = questionsForMe[questionIndex];
             html += '<b>' + currentQuestion.question + '</b><br /><input type="text" id="answer" /><hr />\n\n';
             html += '<button onclick="answerQuestion(); return false;">OK</button>';
             document.getElementById('question').innerHTML = html;
@@ -153,11 +153,11 @@
             console.log(answer);
 
             let answerQuestion = firebase.functions().httpsCallable('answerQuestion');
-            answerQuestion({answeredQuestionId: questionIdsForMe[currentQuestionIndex], answer: answer})
+            answerQuestion({answeredQuestionId: questionIdsForMe[questionIndex], answer: answer})
                 .then(function (result) {
-                    console.log("answered question " + questionIdsForMe[currentQuestionIndex]);
-                    currentQuestionIndex++;
-                    if (currentQuestionIndex < questionsForMe.length) {
+                    console.log("answered question " + questionIdsForMe[questionIndex]);
+                    questionIndex++;
+                    if (questionIndex < questionsForMe.length) {
                         showQuestion();
                     } else {
                         showDone();
@@ -180,7 +180,7 @@
 
         function updateClock() {
             let text = "Time: ";
-            let start = started_at_wa.seconds; //Date.parse(started_at_wa);
+            let start = writeAnswersStartedAt.seconds; //Date.parse(writeAnswersStartedAt);
             let timelimit = 2 * 60;
             let diff = (start + timelimit) - Math.floor(Date.now() / 1000);
             if (diff < 0) {
@@ -200,13 +200,13 @@
             firestore.settings(settings);
 
             return firestore
-                .collection('rooms').doc(currentRoom)
+                .collection('rooms').doc(roomCode)
                 .collection('rounds').doc(room.status)
                 .onSnapshot((roundDoc) => {
                     //check if status has changed to 'vote' yet.
                     round = roundDoc.data();
                     console.log("on round status:" + roundDoc.data());
-                    if (round.status !== 'write_answers') {
+                    if (round.status !== 'writeAnswers') {
                         if (round.status === 'vote') {
                             //go to next screen
                             window.location = "vote.html";
@@ -227,7 +227,7 @@
             firestore.settings(settings);
 
             //Listen for nickname changes
-            firestore.collection(`rooms/${currentRoom}/players`)
+            firestore.collection(`rooms/${roomCode}/players`)
                 .onSnapshot((querySnapshot) => {
                     console.log('-- listening for nickname changes');
                     players = [];
@@ -237,7 +237,7 @@
                     updatePlayersDone();
                 });
 
-            firestore.collection(`rooms/${currentRoom}/rounds/${room.status}/players_done`)
+            firestore.collection(`rooms/${roomCode}/rounds/${room.status}/playersDone`)
                 .onSnapshot((querySnapshot) => {
                     console.log('-- listening for players done');
                     playersDone = [];
@@ -260,7 +260,7 @@
                 html += `<li>${players[playerKey]} ${done}</li>\n`;
             }
             html += "</ul>\n";
-            document.getElementById('players_done').innerHTML = html;
+            document.getElementById('playersDone').innerHTML = html;
         }
 
         function vipSkip() {

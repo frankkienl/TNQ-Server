@@ -44,14 +44,14 @@
         //
         let userUid;
         let user;
-        let currentRoom;
+        let roomCode;
         let room;
         let round;
         let questionsPerUser; //object field per user
         let questions = [];
         let answers = [];
-        let currentQuestionIndex = 0;
-        let started_at_wa; //when the round started, used when calculating time left.
+        let questionIndex = 0;
+        let writeAnswersStartedAt; //when the round started, used when calculating time left.
         let isVip = false;
 
         document.addEventListener('DOMContentLoaded', function () {
@@ -85,22 +85,22 @@
 
             let userSnapshot = await firestore.doc(`users/${userUid}`).get();
             user = userSnapshot.data();
-            currentRoom = user.currentRoom;
-            document.getElementById('roomCode').innerText = currentRoom;
-            let roomSnapshot = await firestore.doc(`rooms/${currentRoom}`).get();
+            roomCode = user.roomCode;
+            document.getElementById('roomCode').innerText = roomCode;
+            let roomSnapshot = await firestore.doc(`rooms/${roomCode}`).get();
             room = roomSnapshot.data();
             if (room.vip === userUid) {
                 isVip = true;
             }
-            let roundSnapshot = await firestore.doc(`rooms/${currentRoom}/rounds/${room.status}`).get();
+            let roundSnapshot = await firestore.doc(`rooms/${roomCode}/rounds/${room.status}`).get();
             round = roundSnapshot.data();
             questionsPerUser = round.questionsPerUser; //object (map)
 
-            let questionsCollection = await firestore.collection(`rooms/${currentRoom}/rounds/${room.status}/questions`).get();
+            let questionsCollection = await firestore.collection(`rooms/${roomCode}/rounds/${room.status}/questions`).get();
             questionsCollection.forEach((questionSnapshot) => {
                 questions.push(questionSnapshot.data());
             });
-            let answersCollection = await firestore.collection(`rooms/${currentRoom}/rounds/${room.status}/answers`).get();
+            let answersCollection = await firestore.collection(`rooms/${roomCode}/rounds/${room.status}/answers`).get();
             answersCollection.forEach((answerSnapshot) => {
                 answers[answerSnapshot.id] = answerSnapshot.data();
             });
@@ -113,7 +113,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('vote').style.display = 'block';
             document.getElementById('voteResult').style.display = 'none';
-            let currentQuestion = questions[currentQuestionIndex];
+            let currentQuestion = questions[questionIndex];
             //console.log(currentQuestion);
             //console.log(answers);
 
@@ -156,7 +156,7 @@
             document.getElementById('loading').style.display = 'none';
             document.getElementById('clock').style.display = 'none';
             document.getElementById('vote').style.display = 'none';
-            let currentQuestion = questions[currentQuestionIndex];
+            let currentQuestion = questions[questionIndex];
 
             let leftAnswer = answers[currentQuestion.leftPlayer]['question' + currentQuestion.id];
             let rightAnswer = answers[currentQuestion.rightPlayer]['question' + currentQuestion.id];
@@ -195,7 +195,7 @@
 
             //debugger;
             let voteResultSnapshot = await firestore
-                .doc(`rooms/${room.roomCode}/rounds/${room.status}/vote_results/question${currentQuestion.id}`)
+                .doc(`rooms/${room.roomCode}/rounds/${room.status}/voteResults/question${currentQuestion.id}`)
                 .get();
             let voteResult = voteResultSnapshot.data();
             document.getElementById('leftVotes').innerText = voteResult.leftPoints;
@@ -234,7 +234,7 @@
 
         function updateClock() {
             let text = "Time: ";
-            let start = started_at_v.seconds; //Date.parse(started_at_wa);
+            let start = votingStartedAt.seconds; //Date.parse(writeAnswersStartedAt);
             let timelimit = 30;
             let diff = (start + timelimit) - Math.floor(Date.now() / 1000);
             if (diff < 0) {
@@ -249,7 +249,7 @@
         }
 
         function startListeningForRoundStatus() {
-            firestore.doc(`rooms/${currentRoom}/rounds/${room.status}`)
+            firestore.doc(`rooms/${roomCode}/rounds/${room.status}`)
                 .onSnapshot((roundDoc) => {
                     //check if status has changed
                     round = roundDoc.data();
@@ -261,12 +261,12 @@
                         window.location = 'roundResult.html';
                     } else if (round.status === 'voteResult') {
                         //show result of latest voting
-                        currentQuestionIndex = round.vote_question_index;
+                        questionIndex = round.votingQuestionIndex;
                         showQuestionAndVoteResult();
                     } else {
                         //go to next question
                         //set question we vote on next
-                        currentQuestionIndex = round.vote_question_index;
+                        questionIndex = round.votingQuestionIndex;
                         showQuestionAndAnswersToVote();
                     }
                 });
