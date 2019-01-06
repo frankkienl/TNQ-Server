@@ -1,5 +1,9 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import {withStyles} from "@material-ui/core/styles";
+import RoomPlayers from "./RoomPlayers";
+import Typography from "@material-ui/core/es/Typography/Typography";
+import PickQuestionPacks from "./PickQuestionPacks";
+import Button from "@material-ui/core/es/Button/Button";
 
 const styles = theme => ({
   layout: {
@@ -33,9 +37,27 @@ class Room extends Component {
 
   render() {
     const {classes} = this.props;
+    let tnq = this.props.tnq;
+    let isVip = ((tnq && tnq.room && tnq.user) && tnq.room.vip === tnq.user.uid);
+    let canStart = (tnq && tnq.room && tnq.room.players && (tnq.room.players.length >= 3));
     return (
       <div className='room'>
-        Room
+        <Typography variant="h6">Roomcode: {tnq.user.currentRoom}</Typography>
+        <br/>
+        {(isVip) ?
+          <Fragment>
+            <Button
+              color="primary"
+              variant="contained"
+              disabled={!canStart}
+            >Start game</Button>
+            {!canStart && <Fragment><i>You need at least 3 players.</i><br/></Fragment>}
+          </Fragment> : ''
+        }
+        <br/>
+        <PickQuestionPacks tnq={this.props.tnq}/>
+        <br/>
+        <RoomPlayers tnq={this.props.tnq}/>
       </div>
     );
   }
