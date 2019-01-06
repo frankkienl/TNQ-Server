@@ -762,6 +762,7 @@ async function prepareRound(roomCode, playerCollection, roundNr) {
                 roundnumber: roundNr,
                 status: 'write_answers',
                 started_at_wa: new Date(),
+                timeLimitWriteAnswers: timeLimitWriteAnswers,
                 questionsPerUser: questionsPerUser
             }, {merge: true});
     promiseWrites.push(promiseWriteRound);

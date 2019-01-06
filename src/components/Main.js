@@ -3,6 +3,7 @@ import Login from "./Login";
 import PickRoom from "./PickRoom";
 import ChangeNickname from "./ChangeNickname";
 import Room from "./Room";
+import WriteAnswers from "./WriteAnswers";
 
 class Main extends Component {
 
@@ -10,45 +11,62 @@ class Main extends Component {
 
     let mainComp = null;
     //decide based on props
+    let tnq = this.props.tnq;
     if (!this.props.tnq.loggedIn) {
       mainComp = 'login';
-    } else if (!(this.props.tnq && this.props.tnq.user && this.props.tnq.user.nickname)) {
+    } else if (!(tnq && tnq.user && tnq.user.nickname)) {
       mainComp = 'handleChangeNickname';
-    } else if (!this.props.tnq.user.currentRoom) {
+    } else if (!tnq.user.currentRoom) {
       mainComp = 'pickRoom';
-    } else if (this.props.tnq.user.currentRoom) {
-      mainComp = 'room';
+    } else if (tnq.user.currentRoom && tnq.room) {
+      if (tnq.room.status === 'waiting_for_players') {
+        mainComp = 'room';
+      } else if (tnq.room.status.startsWith('round')) {
+        //check room status
+        if (tnq.room.round) {
+          if (tnq.room.round.status === 'write_answers') {
+            mainComp = 'write_answers';
+          }
+        }
+
+      }
     }
 
     switch (mainComp) {
       case 'login':
         return (
           <div className="main">
-            <Login tnq={this.props.tnq} firebase={this.props.firebase}/>
+            <Login tnq={tnq} firebase={this.props.firebase}/>
           </div>
         );
       case 'handleChangeNickname':
         return (
           <div className="main">
-            <ChangeNickname tnq={this.props.tnq} firebase={this.props.firebase}/>
+            <ChangeNickname tnq={tnq} firebase={this.props.firebase}/>
           </div>
         );
       case 'pickRoom':
         return (
           <div className="main">
-            <PickRoom tnq={this.props.tnq} firebase={this.props.firebase}/>
+            <PickRoom tnq={tnq} firebase={this.props.firebase}/>
           </div>
         );
       case 'room':
         return (
           <div className="main">
-            <Room tnq={this.props.tnq} firebase={this.props.firebase}/>
+            <Room tnq={tnq} firebase={this.props.firebase}/>
+          </div>
+        );
+      case 'write_answers':
+        return (
+          <div className="main">
+            <WriteAnswers tnq={tnq} firebase={this.props.firebase}/>
           </div>
         );
       default:
         return (
           <div className="main">
-            State not found
+            Loading...
           </div>
         );
     }

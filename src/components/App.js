@@ -74,10 +74,31 @@ class App extends Component {
               //Room
               let userObj = userDoc.data();
               firestore.doc(`rooms/${userObj.currentRoom}`).onSnapshot(roomDoc => {
+                let roomObj = roomDoc.data();
                 let newState = update(this.state, {
-                  tnq: {room: {$set: roomDoc.data()}}
+                  tnq: {room: {$set: roomObj}}
                 });
                 this.setState(newState);
+                //Round
+                if (roomObj.status.startsWith('round')) {
+                  firestore.doc(`rooms/${userObj.currentRoom}/rounds/${roomObj.status}/`).onSnapshot(roundDoc => {
+                    let roundObj = roundDoc.data();
+                    let newState = update(this.state, {
+                      tnq: {room: {round: {$set: roundObj}}}
+                    });
+                    this.setState(newState);
+                    //Questions
+                    firestore.collection(`rooms/${userObj.currentRoom}/rounds/${roomObj.status}/questions`).onSnapshot(questionsCol => {
+                      let questionsArray = questionsCol.docs.map((questionDoc) => {
+                        return questionDoc.data();
+                      });
+                      let newState = update(this.state, {
+                        tnq: {room: {round: {questions: {$set: questionsArray}}}}
+                      });
+                      this.setState(newState);
+                    });
+                  });
+                }
               });
               //Players in room
               firestore.collection(`rooms/${userObj.currentRoom}/players`).onSnapshot(playersCol => {
