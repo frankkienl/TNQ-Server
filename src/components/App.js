@@ -23,9 +23,9 @@ class App extends Component {
   render() {
     return (
       <div className="App">
-        <TopBar tnq={this.state.tnq} firebase={this.state.firebase} />
-        <Main tnq={this.state.tnq} firebase={this.state.firebase} />
-        <StateView tnq={this.state.tnq} firebase={this.state.firebase} />
+        <TopBar tnq={this.state.tnq} firebase={this.state.firebase}/>
+        <Main tnq={this.state.tnq} firebase={this.state.firebase}/>
+        <StateView tnq={this.state.tnq} firebase={this.state.firebase}/>
       </div>
     );
   }
@@ -69,6 +69,27 @@ class App extends Component {
               tnq: {user: {$set: userDoc.data()}}
             });
             this.setState(newState);
+            //if user is now in a room, start listener for tnq-room object
+            if (userDoc && userDoc.data() && userDoc.data().currentRoom) {
+              //Room
+              let userObj = userDoc.data();
+              firestore.doc(`rooms/${userObj.currentRoom}`).onSnapshot(roomDoc => {
+                let newState = update(this.state, {
+                  tnq: {room: {$set: roomDoc.data()}}
+                });
+                this.setState(newState);
+              });
+              //Players in room
+              firestore.collection(`rooms/${userObj.currentRoom}/players`).onSnapshot(playersCol => {
+                let playersArray = playersCol.docs.map((playerDoc) => {
+                  return playerDoc.data();
+                });
+                let newState = update(this.state, {
+                  tnq: {room: {players: {$set: playersArray}}}
+                });
+                this.setState(newState);
+              });
+            }
           });
         }
         let newState = update(this.state, {
