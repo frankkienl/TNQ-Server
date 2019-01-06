@@ -89,11 +89,12 @@ class App extends Component {
                     this.setState(newState);
                     //Questions
                     firestore.collection(`rooms/${userObj.currentRoom}/rounds/${roomObj.status}/questions`).onSnapshot(questionsCol => {
-                      let questionsArray = questionsCol.docs.map((questionDoc) => {
-                        return questionDoc.data();
+                      let questions = {};
+                      questionsCol.docs.forEach((questionDoc) => {
+                        questions[questionDoc.id] = questionDoc.data();
                       });
                       let newState = update(this.state, {
-                        tnq: {room: {round: {questions: {$set: questionsArray}}}}
+                        tnq: {room: {round: {questions: {$set: questions}}}}
                       });
                       this.setState(newState);
                     });

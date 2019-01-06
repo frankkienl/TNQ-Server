@@ -37,14 +37,18 @@ class WriteAnswers extends Component {
     const {classes} = this.props;
     let tnq = this.props.tnq;
     let countDownStart = this.props.tnq.room.round.started_at_wa.seconds;
-    let countDownEnd = countDownStart + (this.props.tnq.room.round.timeLimitWriteAnswers/1000);
+    let countDownEnd = countDownStart + (this.props.tnq.room.round.timeLimitWriteAnswers / 1000);
     let questionsForMe = tnq.room.round.questionsPerUser[tnq.user.uid];
     return (
       <div className='writeAnswers'>
-        <Countdown start={countDownStart} end={countDownEnd}/>
-        <WriteAnswer tnq={tnq} question={questionsForMe[0]} />
-        <WriteAnswer tnq={tnq} question={questionsForMe[1]} />
-        <PlayersDone tnq={tnq}/>
+        <main className={classes.layout}>
+          <Countdown start={countDownStart} end={countDownEnd}/>
+          <br/>
+          <WriteAnswer tnq={tnq} questionId={questionsForMe[0]}/>
+          <br/>
+          <WriteAnswer tnq={tnq} questionId={questionsForMe[1]}/>
+          <PlayersDone tnq={tnq}/>
+        </main>
       </div>
     );
   }
