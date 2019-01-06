@@ -24,6 +24,8 @@ class Vote extends Component {
 
   render() {
     const {classes} = this.props;
+    let voteQuestionIndex = 0;
+
     return (
       <div className='vote'>
         Vote
