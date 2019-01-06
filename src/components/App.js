@@ -70,10 +70,10 @@ class App extends Component {
             });
             this.setState(newState);
             //if user is now in a room, start listener for tnq-room object
-            if (userDoc && userDoc.data() && userDoc.data().currentRoom) {
+            if (userDoc && userDoc.data() && userDoc.data().roomCode) {
               //Room
               let userObj = userDoc.data();
-              firestore.doc(`rooms/${userObj.currentRoom}`).onSnapshot(roomDoc => {
+              firestore.doc(`rooms/${userObj.roomCode}`).onSnapshot(roomDoc => {
                 let roomObj = roomDoc.data();
                 let newState = update(this.state, {
                   tnq: {room: {$set: roomObj}}
@@ -81,14 +81,14 @@ class App extends Component {
                 this.setState(newState);
                 //Round
                 if (roomObj.status.startsWith('round')) {
-                  firestore.doc(`rooms/${userObj.currentRoom}/rounds/${roomObj.status}/`).onSnapshot(roundDoc => {
+                  firestore.doc(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/`).onSnapshot(roundDoc => {
                     let roundObj = roundDoc.data();
                     let newState = update(this.state, {
                       tnq: {room: {round: {$set: roundObj}}}
                     });
                     this.setState(newState);
                     //Questions
-                    firestore.collection(`rooms/${userObj.currentRoom}/rounds/${roomObj.status}/questions`).onSnapshot(questionsCol => {
+                    firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/questions`).onSnapshot(questionsCol => {
                       let questions = {};
                       questionsCol.docs.forEach((questionDoc) => {
                         questions[questionDoc.id] = questionDoc.data();
@@ -102,7 +102,7 @@ class App extends Component {
                 }
               });
               //Players in room
-              firestore.collection(`rooms/${userObj.currentRoom}/players`).onSnapshot(playersCol => {
+              firestore.collection(`rooms/${userObj.roomCode}/players`).onSnapshot(playersCol => {
                 let playersArray = playersCol.docs.map((playerDoc) => {
                   return playerDoc.data();
                 });

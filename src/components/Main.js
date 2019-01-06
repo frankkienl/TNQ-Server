@@ -17,16 +17,16 @@ class Main extends Component {
       mainComp = 'login';
     } else if (!(tnq && tnq.user && tnq.user.nickname)) {
       mainComp = 'handleChangeNickname';
-    } else if (!tnq.user.currentRoom) {
+    } else if (!tnq.user.roomCode) {
       mainComp = 'pickRoom';
-    } else if (tnq.user.currentRoom && tnq.room) {
-      if (tnq.room.status === 'waiting_for_players') {
+    } else if (tnq.user.roomCode && tnq.room) {
+      if (tnq.room.status === 'waitingForPlayers') {
         mainComp = 'room';
       } else if (tnq.room.status.startsWith('round')) {
         //check room status
         if (tnq.room.round) {
-          if (tnq.room.round.status === 'write_answers') {
-            mainComp = 'write_answers';
+          if (tnq.room.round.status === 'writeAnswers') {
+            mainComp = 'writeAnswers';
           } else if (tnq.room.round.status === 'vote'){
             mainComp = 'vote';
           }
@@ -60,7 +60,7 @@ class Main extends Component {
             <Room tnq={tnq} firebase={this.props.firebase}/>
           </div>
         );
-      case 'write_answers':
+      case 'writeAnswers':
         return (
           <div className="main">
             <WriteAnswers tnq={tnq} firebase={this.props.firebase}/>
