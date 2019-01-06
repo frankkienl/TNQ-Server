@@ -507,6 +507,27 @@ function prepareVotingResult(roomCode, roundNr) {
         console.log(`prepareVotingResult;; ${toWrite}`);
         yield firestore.doc(`rooms/${roomCode}/rounds/${roundNr}/vote_results/question${questionNumber}`)
             .set(toWrite);
+        //add points to players
+        if (leftVotes.length > 0) {
+            let playerDoc = yield firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).get();
+            let player = playerDoc.data();
+            if (!player.score) {
+                yield firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({ score: leftVotes.length }, { merge: true });
+            }
+            else {
+                yield firestore.doc(`rooms/${roomCode}/players/${question.leftPlayer}`).set({ score: (player.score + leftVotes.length) }, { merge: true });
+            }
+        }
+        if (rightVotes.length > 0) {
+            let playerDoc = yield firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).get();
+            let player = playerDoc.data();
+            if (!player.score) {
+                yield firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({ score: leftVotes.length }, { merge: true });
+            }
+            else {
+                yield firestore.doc(`rooms/${roomCode}/players/${question.rightPlayer}`).set({ score: (player.score + leftVotes.length) }, { merge: true });
+            }
+        }
         //show vote result
         yield firestore.doc(`rooms/${roomCode}/rounds/${roundNr}`)
             .set({ status: 'voteResult' }, { merge: true });
@@ -686,6 +707,8 @@ function prepareRound(roomCode, playerCollection, roundNr) {
             roundnumber: roundNr,
             status: 'write_answers',
             started_at_wa: new Date(),
+            ends_at_wa: Date.now() - (timeLimitWriteAnswers),
+            timeLimitWriteAnswers: timeLimitWriteAnswers,
             questionsPerUser: questionsPerUser
         }, { merge: true });
         promiseWrites.push(promiseWriteRound);
