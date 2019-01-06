@@ -4,6 +4,7 @@ import PickRoom from "./PickRoom";
 import ChangeNickname from "./ChangeNickname";
 import Room from "./Room";
 import WriteAnswers from "./WriteAnswers";
+import Vote from "./Vote";
 
 class Main extends Component {
 
@@ -26,6 +27,8 @@ class Main extends Component {
         if (tnq.room.round) {
           if (tnq.room.round.status === 'write_answers') {
             mainComp = 'write_answers';
+          } else if (tnq.room.round.status === 'vote'){
+            mainComp = 'vote';
           }
         }
 
@@ -61,6 +64,12 @@ class Main extends Component {
         return (
           <div className="main">
             <WriteAnswers tnq={tnq} firebase={this.props.firebase}/>
+          </div>
+        );
+      case 'vote':
+        return (
+          <div className="main">
+            <Vote tnq={tnq} firebase={this.props.firebase} />
           </div>
         );
       default:
