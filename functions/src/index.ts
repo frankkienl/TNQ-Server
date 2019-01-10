@@ -346,7 +346,8 @@ async function prepareVoting(roomCode, roundId) {
                     status: 'results', //set new status
                     writeAnswersStartedAt: null, //remove old data
                     votingStartedAt: null,
-                    votingQuestionIndex: null
+                    votingQuestionIndex: null,
+                    votingQuestionId: null
                 },
                 {merge: true});
         //Clear playersDone
@@ -357,7 +358,7 @@ async function prepareVoting(roomCode, roundId) {
         await deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundId}/playersDone`, 100);
         //set next question to vote for
         await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`)
-            .set({votingStartedAt: new Date(), votingQuestionIndex: index},
+            .set({votingStartedAt: new Date(), votingQuestionIndex: index, votingQuestionId: 'question' + (index+1)},
                 {merge: true});
     }
 }

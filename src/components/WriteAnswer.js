@@ -12,12 +12,7 @@ import AssignmentTurnedIn from "@material-ui/icons/AssignmentTurnedIn";
 const styles = theme => ({
   layout: {
     width: 'auto',
-    margin: theme.spacing.unit * 3,
-    [theme.breakpoints.up(900 + theme.spacing.unit * 3 * 2)]: {
-      width: 900,
-      marginLeft: 'auto',
-      marginRight: 'auto',
-    },
+    margin: theme.spacing.unit * 3
   },
 });
 
