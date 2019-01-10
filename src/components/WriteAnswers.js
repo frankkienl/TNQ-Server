@@ -36,8 +36,8 @@ class WriteAnswers extends Component {
   render() {
     const {classes} = this.props;
     let tnq = this.props.tnq;
-    let countDownStart = this.props.tnq.room.round.writeAnswersStartedAt.seconds;
-    let countDownEnd = countDownStart + (this.props.tnq.room.round.writeAnswersTimeLimit / 1000);
+    let countDownStart = tnq.room.round.writeAnswersStartedAt.seconds;
+    let countDownEnd = countDownStart + (tnq.room.round.writeAnswersTimeLimit / 1000);
     let questionsForMe = tnq.room.round.questionsPerUser[tnq.user.uid];
     return (
       <div className='writeAnswers'>
