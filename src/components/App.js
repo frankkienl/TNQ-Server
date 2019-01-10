@@ -98,6 +98,28 @@ class App extends Component {
                       });
                       this.setState(newState);
                     });
+                    //Answers
+                    firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/answers`).onSnapshot(answersCol => {
+                      let answers = {};
+                      answersCol.docs.forEach((answerDoc) => {
+                        answers[answerDoc.id] = answerDoc.data();
+                      });
+                      let newState = update(this.state, {
+                        tnq: {room: {round: {answers: {$set: answers}}}}
+                      });
+                      this.setState(newState);
+                    });
+                    //Vote results
+                    firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/answers`).onSnapshot(answersCol => {
+                      let answers = {};
+                      answersCol.docs.forEach((answerDoc) => {
+                        answers[answerDoc.id] = answerDoc.data();
+                      });
+                      let newState = update(this.state, {
+                        tnq: {room: {round: {answers: {$set: answers}}}}
+                      });
+                      this.setState(newState);
+                    });
                   });
                 }
               });
