@@ -32,7 +32,7 @@ class Voting extends Component {
     let countDownStart = 0;//this.props.tnq.room.round.writeAnswersStartedAt.seconds;
     let countDownEnd = 0;//countDownStart + (this.props.tnq.room.round.writeAnswersTimeLimit / 1000);
     //
-    let currentQuestionId = 'question' + (tnq.room.round.votingQuestionIndex + 1);
+    let currentQuestionId = tnq.room.round.votingQuestionId;
     if (!tnq.room.round.questions || !tnq.room.round.answers) {
       return (<p>Loading question and answers for voting...</p>);
     }
