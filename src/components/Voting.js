@@ -59,7 +59,7 @@ class Voting extends Component {
           >
             {currentAnswers[currentQuestion.leftPlayer][currentQuestionId]}
           </Button>
-          &nbsp;
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
           <Button
             color='primary'
             variant='contained'
