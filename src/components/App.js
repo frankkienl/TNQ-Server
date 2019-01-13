@@ -110,13 +110,13 @@ class App extends Component {
                       this.setState(newState);
                     });
                     //Vote results
-                    firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/answers`).onSnapshot(answersCol => {
-                      let answers = {};
-                      answersCol.docs.forEach((answerDoc) => {
-                        answers[answerDoc.id] = answerDoc.data();
+                    firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/voteResults`).onSnapshot(voteResultsCol => {
+                      let voteResults = {};
+                      voteResultsCol.docs.forEach((voteResultDoc) => {
+                        voteResults[voteResultDoc.id] = voteResultDoc.data();
                       });
                       let newState = update(this.state, {
-                        tnq: {room: {round: {answers: {$set: answers}}}}
+                        tnq: {room: {round: {voteResults: {$set: voteResults}}}}
                       });
                       this.setState(newState);
                     });
