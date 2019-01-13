@@ -1,7 +1,8 @@
-import React, {Component} from 'react';
+import React, {Component, Fragment} from 'react';
 import {withStyles} from "@material-ui/core/styles";
-import {Badge, Typography} from "@material-ui/core";
+import {Badge, Button, CardContent, Divider, Typography} from "@material-ui/core";
 import Card from "@material-ui/core/Card";
+import * as firebase from "firebase";
 
 const styles = theme => ({
   layout: {
@@ -15,6 +16,9 @@ const styles = theme => ({
     },
     margin: {
       margin: theme.spacing.unit * 2,
+    },
+    card: {
+      minWidth: 375,
     },
   }
 });
@@ -40,29 +44,56 @@ class VotingResult extends Component {
     tnq.room.players.forEach((player) => {
       playersNames[player.uid] = player.nickname;
     });
+    let isVip = this.isVip();
     //
     return (
       <div className='vote'>
         <main className={classes.layout}>
           <Typography variant='h5'>{currentQuestion.question.question}</Typography>
+          <br/><br/>
           <Badge className={classes.margin} badgeContent={0} color='secondary'>
-            <Card>
-              <Typography variant='h6'>{currentAnswers[currentQuestion.leftPlayer][currentQuestionId]}</Typography>
-              {playersNames[currentQuestion.leftPlayer]}
+            <Card className={classes.card}>
+              <CardContent>
+                <Typography variant='h6'>{currentAnswers[currentQuestion.leftPlayer][currentQuestionId]}</Typography>
+                {playersNames[currentQuestion.leftPlayer]}
+                <Divider />
+              </CardContent>
             </Card>
           </Badge>
-          &nbsp;
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
           <Badge className={classes.margin} badgeContent={0} color='secondary'>
-            <Card>
-              <Typography variant='h6'>{currentAnswers[currentQuestion.rightPlayer][currentQuestionId]}</Typography>
-              {playersNames[currentQuestion.rightPlayer]}
+            <Card className={classes.card}>
+              <CardContent>
+                <Typography variant='h6'>{currentAnswers[currentQuestion.rightPlayer][currentQuestionId]}</Typography>
+                {playersNames[currentQuestion.rightPlayer]}
+                <Divider />
+              </CardContent>
             </Card>
           </Badge>
+          <br/>
+          {isVip && <Fragment><br /><Button variant='contained' color='primary' onClick={this.goToNext}>Next</Button></Fragment>}
         </main>
       </div>
     );
   }
 
+  isVip = () => {
+    let tnq = this.props.tnq;
+    let isVip = ((tnq && tnq.room && tnq.user) && tnq.room.vip === tnq.user.uid);
+    return isVip;
+  };
+
+  goToNext = () => {
+    if (!this.isVip){return;}
+    console.log('go to next vote, after viewing results');
+    let nextVote = firebase.functions().httpsCallable('vipNextVote');
+    nextVote({}).then(() => {
+      console.log('Going to next vote.');
+    }).catch((error) => {
+      console.log(error);
+      //alert(error); //What error? I don't see anything.
+    });
+  }
 
 }
 

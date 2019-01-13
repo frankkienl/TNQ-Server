@@ -409,7 +409,7 @@ export const voteForAnswer = functions.https.onCall(async (data, context) => {
         tooLate = true;
     }
     let toWrite = {};
-    toWrite[`question${votedQuestionId}`] = data.vote;
+    toWrite[votedQuestionId] = data.vote;
     if (tooLate) {
         toWrite['tooLate'] = true;
     }
@@ -491,22 +491,19 @@ export const vipEndVoting = functions.https.onCall(async (data, context) => {
 async function prepareVotingResult(roomCode, roundId) {
     //Get room
     console.log(`prepareVotingResult: ${roomCode}, ${roundId}`);
-    let roomSnapshot = await firestore.doc(`rooms/${roomCode}`).get();
+    //let roomSnapshot = await firestore.doc(`rooms/${roomCode}`).get();
 
     let roundSnapshot = await firestore.doc(`rooms/${roomCode}/rounds/${roundId}`).get();
     let round = roundSnapshot.data();
 
-    let questionIndex = round.votingQuestionIndex;
+    let questionId = round.votingQuestionId;
 
     //Get question
-    const questionNumber = questionIndex + 1; //array starts at 0
-    console.log(`prepareVotingResult; index=${questionIndex} number=${questionNumber} -- rooms/${roomCode}/rounds/${roundId}/questions/question${questionNumber}`);
-
+    console.log(`prepareVotingResult; index=${round.votingQuestionIndex} id=${questionId} -- rooms/${roomCode}/rounds/${roundId}/questions/${questionId}`);
     let questionSnapshot = await firestore
-        .doc(`rooms/${roomCode}/rounds/${roundId}/questions/question${questionNumber}`)
+        .doc(`rooms/${roomCode}/rounds/${roundId}/questions/${questionId}`)
         .get();
     let question = questionSnapshot.data();
-    let questionId = questionSnapshot.id;
 
     console.log(`prepareVotingResult:: ${questionId} -- ${question.question.question}`);
 
@@ -523,12 +520,12 @@ async function prepareVotingResult(roomCode, roundId) {
         let voter = voteSnapshot.id;
         let vote = voteSnapshot.data();
 
-        if (vote[`question${questionNumber}`] === question.leftPlayer) {
+        if (vote[questionId] === question.leftPlayer) {
             leftVotes.push(voter);
-        } else if (vote[`question${questionNumber}`] === question.rightPlayer) {
+        } else if (vote[questionId] === question.rightPlayer) {
             rightVotes.push(voter);
         } else {
-            console.log(`prepareVotingResult:; vote Else ${voter} ${vote[`question${questionNumber}`]} `);
+            console.log(`prepareVotingResult:; vote Else`);
         }
     });
 
@@ -541,7 +538,7 @@ async function prepareVotingResult(roomCode, roundId) {
 
     console.log(`prepareVotingResult;; ${toWrite}`);
 
-    await firestore.doc(`rooms/${roomCode}/rounds/${roundId}/voteResults/question${questionNumber}`)
+    await firestore.doc(`rooms/${roomCode}/rounds/${roundId}/voteResults/${questionId}`)
         .set(toWrite);
 
     //add points to players
