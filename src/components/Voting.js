@@ -36,8 +36,11 @@ class Voting extends Component {
     if (!tnq.room.round.questions || !tnq.room.round.answers) {
       return (<p>Loading question and answers for voting...</p>);
     }
-    let currentQuestion = tnq.room.round.questions[currentQuestionId];
     let currentAnswers = tnq.room.round.answers;
+    let currentQuestion = tnq.room.round.questions[currentQuestionId];
+    if (!currentQuestion){
+      return (<p>Loading question and answers for voting....</p>);
+    }
     let allowedToVote = true;
     let myQuestions = tnq.room.round.questionsPerUser[tnq.user.uid];
     for (let i = 0; i < myQuestions.length; i++) {
@@ -45,6 +48,7 @@ class Voting extends Component {
         allowedToVote = false;
       }
     }
+    debugger;
     //
     return (
       <div className='vote'>
@@ -68,6 +72,7 @@ class Voting extends Component {
           >
             {currentAnswers[currentQuestion.rightPlayer][currentQuestionId]}
           </Button>
+          <br /><br />
           {this.state.showLoading && <CircularProgress />}
           {!allowedToVote &&
           <Typography variant='body1'><i>You are not allowed to vote on your own questions.</i></Typography>}

@@ -6,6 +6,8 @@ import Room from "./Room";
 import WriteAnswers from "./WriteAnswers";
 import Voting from "./Voting";
 import VotingResult from "./VotingResult";
+import RoundResult from "./RoundResult";
+import GameOver from "./GameOver";
 
 class Main extends Component {
 
@@ -32,9 +34,12 @@ class Main extends Component {
             mainComp = 'vote';
           } else if (tnq.room.round.status === 'voteResult'){
             mainComp = 'voteResult';
+          } else if (tnq.room.round.status === 'results') {
+            mainComp = 'results';
           }
         }
-
+      } else if (tnq.room.status === 'gameOver'){
+        mainComp = 'gameOver';
       }
     }
 
@@ -54,31 +59,43 @@ class Main extends Component {
       case 'pickRoom':
         return (
           <div className="main">
-            <PickRoom tnq={tnq} firebase={this.props.firebase}/>
+            <PickRoom tnq={tnq}/>
           </div>
         );
       case 'room':
         return (
           <div className="main">
-            <Room tnq={tnq} firebase={this.props.firebase}/>
+            <Room tnq={tnq}/>
           </div>
         );
       case 'writeAnswers':
         return (
           <div className="main">
-            <WriteAnswers tnq={tnq} firebase={this.props.firebase}/>
+            <WriteAnswers tnq={tnq}/>
           </div>
         );
       case 'vote':
         return (
           <div className="main">
-            <Voting tnq={tnq} firebase={this.props.firebase} />
+            <Voting tnq={tnq}/>
           </div>
         );
         case 'voteResult':
         return (
           <div className="main">
-            <VotingResult tnq={tnq} firebase={this.props.firebase} />
+            <VotingResult tnq={tnq}/>
+          </div>
+        );
+      case 'results':
+        return (
+          <div className="main">
+            <RoundResult tnq={tnq}/>
+          </div>
+        );
+      case 'gameOver':
+        return (
+          <div className="main">
+            <GameOver tnq={tnq}/>
           </div>
         );
       default:
