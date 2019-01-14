@@ -330,7 +330,8 @@ function prepareVoting(roomCode, roundId) {
                 status: 'results',
                 writeAnswersStartedAt: null,
                 votingStartedAt: null,
-                votingQuestionIndex: null
+                votingQuestionIndex: null,
+                votingQuestionId: null
             }, { merge: true });
             //Clear playersDone
             yield deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundId}/playersDone`, 100);
@@ -341,7 +342,7 @@ function prepareVoting(roomCode, roundId) {
             yield deleteCollection(firestore, `rooms/${roomCode}/rounds/${roundId}/playersDone`, 100);
             //set next question to vote for
             yield firestore.doc(`rooms/${roomCode}/rounds/${roundId}`)
-                .set({ votingStartedAt: new Date(), votingQuestionIndex: index }, { merge: true });
+                .set({ votingStartedAt: new Date(), votingQuestionIndex: index, votingQuestionId: 'question' + (index + 1) }, { merge: true });
         }
     });
 }
@@ -390,7 +391,7 @@ exports.voteForAnswer = functions.https.onCall((data, context) => __awaiter(this
         tooLate = true;
     }
     let toWrite = {};
-    toWrite[`question${votedQuestionId}`] = data.vote;
+    toWrite[votedQuestionId] = data.vote;
     if (tooLate) {
         toWrite['tooLate'] = true;
     }
@@ -467,18 +468,16 @@ function prepareVotingResult(roomCode, roundId) {
     return __awaiter(this, void 0, void 0, function* () {
         //Get room
         console.log(`prepareVotingResult: ${roomCode}, ${roundId}`);
-        let roomSnapshot = yield firestore.doc(`rooms/${roomCode}`).get();
+        //let roomSnapshot = await firestore.doc(`rooms/${roomCode}`).get();
         let roundSnapshot = yield firestore.doc(`rooms/${roomCode}/rounds/${roundId}`).get();
         let round = roundSnapshot.data();
-        let questionIndex = round.votingQuestionIndex;
+        let questionId = round.votingQuestionId;
         //Get question
-        const questionNumber = questionIndex + 1; //array starts at 0
-        console.log(`prepareVotingResult; index=${questionIndex} number=${questionNumber} -- rooms/${roomCode}/rounds/${roundId}/questions/question${questionNumber}`);
+        console.log(`prepareVotingResult; index=${round.votingQuestionIndex} id=${questionId} -- rooms/${roomCode}/rounds/${roundId}/questions/${questionId}`);
         let questionSnapshot = yield firestore
-            .doc(`rooms/${roomCode}/rounds/${roundId}/questions/question${questionNumber}`)
+            .doc(`rooms/${roomCode}/rounds/${roundId}/questions/${questionId}`)
             .get();
         let question = questionSnapshot.data();
-        let questionId = questionSnapshot.id;
         console.log(`prepareVotingResult:: ${questionId} -- ${question.question.question}`);
         //Get votes
         let votesCollection = yield firestore.collection(`rooms/${roomCode}/rounds/${roundId}/votes`).get();
@@ -489,14 +488,14 @@ function prepareVotingResult(roomCode, roundId) {
         votesCollection.forEach((voteSnapshot) => __awaiter(this, void 0, void 0, function* () {
             let voter = voteSnapshot.id;
             let vote = voteSnapshot.data();
-            if (vote[`question${questionNumber}`] === question.leftPlayer) {
+            if (vote[questionId] === question.leftPlayer) {
                 leftVotes.push(voter);
             }
-            else if (vote[`question${questionNumber}`] === question.rightPlayer) {
+            else if (vote[questionId] === question.rightPlayer) {
                 rightVotes.push(voter);
             }
             else {
-                console.log(`prepareVotingResult:; vote Else ${voter} ${vote[`question${questionNumber}`]} `);
+                console.log(`prepareVotingResult:; vote Else`);
             }
         }));
         let toWrite = {
@@ -506,7 +505,7 @@ function prepareVotingResult(roomCode, roundId) {
             rightVotes: rightVotes
         };
         console.log(`prepareVotingResult;; ${toWrite}`);
-        yield firestore.doc(`rooms/${roomCode}/rounds/${roundId}/voteResults/question${questionNumber}`)
+        yield firestore.doc(`rooms/${roomCode}/rounds/${roundId}/voteResults/${questionId}`)
             .set(toWrite);
         //add points to players
         if (leftVotes.length > 0) {
