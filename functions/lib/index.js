@@ -714,6 +714,7 @@ function prepareRound(roomCode, playerCollection, roundIndex) {
             roundIndex: roundIndex,
             status: 'writeAnswers',
             writeAnswersStartedAt: new Date(),
+            writeAnswersTimeLimit: timeLimitWriteAnswers,
             questionsPerUser: questionsPerUser
         }, { merge: true });
         promiseWrites.push(promiseWriteRound);
