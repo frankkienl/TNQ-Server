@@ -103,7 +103,7 @@
       //write chosen username to database
       if (document.getElementById('nickname').value) {
         //Call function to change nickname
-        let changeNick = firebase.functions().httpsCallable('changeNickname');
+        let changeNick = firebase.functions().httpsCallable('handleChangeNickname');
         changeNick({nickname: document.getElementById('nickname').value})
           .then(function (result) {
             console.log("change nickname");
