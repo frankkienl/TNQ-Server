@@ -21,11 +21,12 @@ class App extends Component {
   }
 
   render() {
+    let isDebug = false;
     return (
       <div className="App">
         <TopBar tnq={this.state.tnq} firebase={this.state.firebase}/>
         <Main tnq={this.state.tnq} firebase={this.state.firebase}/>
-        <StateView tnq={this.state.tnq} firebase={this.state.firebase}/>
+        {isDebug && <StateView tnq={this.state.tnq} firebase={this.state.firebase}/>}
       </div>
     );
   }
