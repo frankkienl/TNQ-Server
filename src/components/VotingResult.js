@@ -3,6 +3,7 @@ import {withStyles} from "@material-ui/core/styles";
 import {Badge, Button, CardContent, Divider, Typography} from "@material-ui/core";
 import Card from "@material-ui/core/Card";
 import * as firebase from "firebase";
+import Chip from "@material-ui/core/Chip";
 
 const styles = theme => ({
   layout: {
@@ -14,12 +15,19 @@ const styles = theme => ({
       marginLeft: 'auto',
       marginRight: 'auto',
     },
-    margin: {
-      margin: theme.spacing.unit * 2,
-    },
-    card: {
-      minWidth: 375,
-    },
+  },
+  margin: {
+    margin: theme.spacing.unit * 2,
+  },
+  card: {
+    minWidth: 200,
+    minHeight: 160,
+  },
+  answerSpace: {
+    minHeight: 60,
+  },
+  votersSpace: {
+    marginTop: theme.spacing.unit,
   }
 });
 
@@ -33,10 +41,11 @@ class VotingResult extends Component {
 
   render() {
     const {classes} = this.props;
+    debugger;
     let tnq = this.props.tnq;
     let currentQuestionId = 'question' + (tnq.room.round.votingQuestionIndex + 1);
-    if (!tnq.room.round.questions || !tnq.room.round.answers) {
-      return (<p>Loading question and answers for voting...</p>);
+    if (!tnq.room.round.questions || !tnq.room.round.answers || !tnq.room.round.voteResults) {
+      return (<p>Loading results..</p>);
     }
     let currentQuestion = tnq.room.round.questions[currentQuestionId];
     let currentAnswers = tnq.room.round.answers;
@@ -47,35 +56,61 @@ class VotingResult extends Component {
     let isVip = this.isVip();
     //
     return (
-      <div className='vote'>
+      <div className='voteResult'>
         <main className={classes.layout}>
           <Typography variant='h5'>{currentQuestion.question.question}</Typography>
           <br/><br/>
-          <Badge className={classes.margin} badgeContent={0} color='secondary'>
+          <Badge className={classes.margin}
+                 badgeContent={tnq.room.round.voteResults[currentQuestionId].leftPoints}
+                 color='secondary'>
             <Card className={classes.card}>
               <CardContent>
-                <Typography variant='h6'>{currentAnswers[currentQuestion.leftPlayer][currentQuestionId]}</Typography>
+                <Typography variant='h6' className={classes.answerSpace}>
+                  {currentAnswers[currentQuestion.leftPlayer][currentQuestionId]}
+                </Typography>
+                <Divider/>
                 {playersNames[currentQuestion.leftPlayer]}
-                <Divider />
+                <Divider/>
+                <div className={classes.votersSpace}>
+                  {this.voters(playersNames, tnq.room.round.voteResults[currentQuestionId].leftVotes)}
+                </div>
               </CardContent>
             </Card>
           </Badge>
           &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-          <Badge className={classes.margin} badgeContent={0} color='secondary'>
+          <Badge className={classes.margin}
+                 badgeContent={tnq.room.round.voteResults[currentQuestionId].rightPoints}
+                 color='secondary'>
             <Card className={classes.card}>
               <CardContent>
-                <Typography variant='h6'>{currentAnswers[currentQuestion.rightPlayer][currentQuestionId]}</Typography>
+                <Typography variant='h6' className={classes.answerSpace}>
+                  {currentAnswers[currentQuestion.rightPlayer][currentQuestionId]}
+                </Typography>
+                <Divider/>
                 {playersNames[currentQuestion.rightPlayer]}
-                <Divider />
+                <Divider/>
+                <div className={classes.votersSpace}>
+                  {this.voters(playersNames, tnq.room.round.voteResults[currentQuestionId].rightVotes)}
+                </div>
               </CardContent>
             </Card>
           </Badge>
           <br/>
-          {isVip && <Fragment><br /><Button variant='contained' color='primary' onClick={this.goToNext}>Next</Button></Fragment>}
+          {isVip &&
+          <Fragment><br/><Button variant='contained' color='primary' onClick={this.goToNext}>Next</Button></Fragment>}
         </main>
       </div>
     );
   }
+
+  voters = (playerNames, voters) => {
+    let chips =
+      voters.map((voter) => {
+        return (<Chip label={playerNames[voter]}/>);
+      });
+
+    return <Fragment>{chips}</Fragment>;
+  };
 
   isVip = () => {
     let tnq = this.props.tnq;
@@ -84,7 +119,9 @@ class VotingResult extends Component {
   };
 
   goToNext = () => {
-    if (!this.isVip){return;}
+    if (!this.isVip) {
+      return;
+    }
     console.log('go to next vote, after viewing results');
     let nextVote = firebase.functions().httpsCallable('vipNextVote');
     nextVote({}).then(() => {
