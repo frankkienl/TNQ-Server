@@ -4,9 +4,12 @@ TODO
 Backend (Functions)
 --
 - No double questions in rounds
-- All variables same casing (camelCase)
 - Give both Id's and Indexes
+- Add question packs
 
 Frontend
 --
 - Scoreboard
+- Question pack picker
+- prevent double click on 'next' button
+- Countdown 
