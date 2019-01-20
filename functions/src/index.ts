@@ -650,7 +650,7 @@ export const removeUserFromRoom = functions.https.onCall(async (data, context) =
 
 export const startGame = functions.https.onCall(async (data, context) => {
     const addDefaultquestionPacks = true; //false=throw error on no questionPacks
-    const defaultquestionPacks = ['mlp1', 'normal1', 'cah1'];
+    const defaultquestionPacks = ['mlp1', 'normal1', 'cah1', 'cae1'];
 
     let userSnapshot = await firestore.doc(`users/${context.auth.uid}`).get();
     if (!userSnapshot.exists) {

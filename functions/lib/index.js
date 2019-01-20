@@ -613,7 +613,7 @@ exports.removeUserFromRoom = functions.https.onCall((data, context) => __awaiter
 }));
 exports.startGame = functions.https.onCall((data, context) => __awaiter(this, void 0, void 0, function* () {
     const addDefaultquestionPacks = true; //false=throw error on no questionPacks
-    const defaultquestionPacks = ['mlp1', 'normal1', 'cah1'];
+    const defaultquestionPacks = ['mlp1', 'normal1', 'cah1', 'cae1'];
     let userSnapshot = yield firestore.doc(`users/${context.auth.uid}`).get();
     if (!userSnapshot.exists) {
         throw new Error(`User ${context.auth.uid} does not exist`);
