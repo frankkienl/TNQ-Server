@@ -100,8 +100,8 @@ class Room extends Component {
               disabled={!canStart || this.state.showLoading}
             >Start game</Button>
             {this.state.showLoading ? <Fragment><br /><CircularProgress/><br/></Fragment> : ''}
-            {!this.hasEnoughPlayers() && <Fragment><i>You need at least 3 players.</i><br/></Fragment>}
-            {!this.hasCorrectRoomState() && <Fragment><i>Room is not ready or already started.</i><br/></Fragment>}
+            {!this.hasEnoughPlayers() && <Fragment>&nbsp;<i>You need at least 3 players.</i><br/></Fragment>}
+            {!this.hasCorrectRoomState() && <Fragment>&nbsp;<i>Room is not ready or already started.</i><br/></Fragment>}
           </Fragment> : ''
         }
         <br/>

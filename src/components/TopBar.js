@@ -96,8 +96,20 @@ class TopBar extends Component {
             <Typography variant="h6" color="inherit" className={classes.grow}>
               TNQ
             </Typography>
+            &nbsp;
             {this.props.tnq.loggedIn && (
               <Fragment>
+                <Typography color="inherit" variant="h6">
+                  {(this.props.tnq.user &&
+                    this.props.tnq.user.roomCode) ?
+                    this.props.tnq.user.roomCode : ''}
+                </Typography>
+
+                {(this.props.tnq.user &&
+                  this.props.tnq.user.roomCode &&
+                  this.props.tnq.user.nickname) ?
+                  (<Typography color="inherit" variant="h6">&nbsp;-&nbsp;</Typography>) : ''}
+
                 <Typography color="inherit" variant="h6">
                   {(this.props.tnq.user &&
                     this.props.tnq.user.nickname) ?

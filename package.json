@@ -5,6 +5,7 @@
   "dependencies": {
     "@material-ui/core": "^3.7.1",
     "@material-ui/icons": "^3.0.1",
+    "emoji-mart": "^2.9.2",
     "firebase": "^5.7.2",
     "firebaseui": "^3.5.1",
     "immutability-helper": "^2.9.0",
