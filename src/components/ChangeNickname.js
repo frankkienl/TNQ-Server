@@ -93,7 +93,12 @@ class ChangeNickname extends Component {
           aria-labelledby="form-dialog-title">
           <DialogTitle id="form-dialog-title">Pick Emoji</DialogTitle>
           <DialogContent>
-            <Picker set='google' emoji='slightly_smiling_face' onSelect={this.handleEmojiPick}/>
+            <Picker
+              set='google'
+              emoji='slightly_smiling_face'
+              onSelect={this.handleEmojiPick}
+              perLine='6'
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={this.handleCloseEmojiPicker} color="primary">
@@ -120,6 +125,7 @@ class ChangeNickname extends Component {
   };
 
   handleEmojiPick = (emoji) => {
+    //https://github.com/missive/emoji-mart
     let nickname = document.getElementById('nickname').value;
     nickname += emoji.native;
     this.setState({nickname: nickname});

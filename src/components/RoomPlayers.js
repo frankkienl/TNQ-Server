@@ -7,6 +7,8 @@ import ListItem from "@material-ui/core/ListItem";
 import ListItemAvatar from "@material-ui/core/ListItemAvatar";
 import Avatar from "@material-ui/core/Avatar";
 import ListItemText from "@material-ui/core/ListItemText";
+import AssignmentTurnedIn from '@material-ui/icons/AssignmentTurnedIn';
+import Assignment from '@material-ui/icons/Assignment';
 
 const styles = theme => ({});
 
@@ -17,9 +19,24 @@ class RoomPlayers extends Component {
     super(props);
   }
 
+  isDone = (player) => {
+    if (
+      this.props.tnq &&
+      this.props.tnq.room &&
+      this.props.tnq.room.round &&
+      this.props.tnq.room.round.playersDone
+    ){
+      if (this.props.tnq.room.round.playersDone[player.uid]){
+        return this.props.tnq.room.round.playersDone[player.uid].done;
+      }
+    }
+    return false;
+  };
+
   render() {
     const {classes} = this.props;
     let players = null;
+    let showDone = !(this.props.tnq && this.props.tnq.room && this.props.tnq.room.status === 'waitingForPlayers');
     if (this.props.tnq.room && this.props.tnq.room.players) {
       players = this.props.tnq.room.players;
       //sort (vip on top, rest alphabetically)
@@ -46,9 +63,15 @@ class RoomPlayers extends Component {
             players.map((player) => (
               <ListItem>
                 <ListItemAvatar>
-                  <Avatar>
-                    {player.vip ? <StarIcon/> : <Person/>}
-                  </Avatar>
+                  { (showDone) ?
+                    <Avatar>
+                      {this.isDone(player) ? <AssignmentTurnedIn/> : <Assignment/>}
+                    </Avatar>
+                    :
+                    <Avatar>
+                      {player.vip ? <StarIcon/> : <Person/>}
+                    </Avatar>
+                  }
                 </ListItemAvatar>
                 <ListItemText
                   primary={player.nickname}

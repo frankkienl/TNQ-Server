@@ -110,6 +110,17 @@ class App extends Component {
                       });
                       this.setState(newState);
                     });
+                    //Players done
+                    firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/playersDone`).onSnapshot(donePlayersCol => {
+                      let donePlayers = {};
+                      donePlayersCol.docs.forEach((donePlayerDoc) => {
+                        donePlayers[donePlayerDoc.id] = donePlayerDoc.data();
+                      });
+                      let newState = update(this.state, {
+                        tnq: {room: {round: {playersDone: {$set: donePlayers}}}}
+                      });
+                      this.setState(newState);
+                    });
                     //Vote results
                     firestore.collection(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/voteResults`).onSnapshot(voteResultsCol => {
                       let voteResults = {};

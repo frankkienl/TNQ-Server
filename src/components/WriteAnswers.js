@@ -1,8 +1,8 @@
 import React, {Component} from 'react';
 import {withStyles} from "@material-ui/core/styles";
 import Countdown from "./Countdown";
-import PlayersDone from "./PlayersDone";
 import WriteAnswer from "./WriteAnswer";
+import RoomPlayers from "./RoomPlayers";
 
 const styles = theme => ({
   layout: {
@@ -47,7 +47,8 @@ class WriteAnswers extends Component {
           <WriteAnswer tnq={tnq} questionId={questionsForMe[0]}/>
           <br/>
           <WriteAnswer tnq={tnq} questionId={questionsForMe[1]}/>
-          <PlayersDone tnq={tnq}/>
+          <RoomPlayers tnq={tnq}/>
+          
         </main>
       </div>
     );
