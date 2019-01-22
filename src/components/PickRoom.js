@@ -109,6 +109,11 @@ class PickRoom extends Component {
       this.setState({showRoomcodeLoading: false, showLoading: false});
     });
   };
+  
+  handleClick(tier) {
+     // if 
+  
+  }
 
   render() {
     const {classes} = this.props;
@@ -142,7 +147,7 @@ class PickRoom extends Component {
                     <Button
                       fullWidth
                       variant={tier.buttonVariant}
-                      onClick={(tier.title === 'Join room') ? this.handleDialogRoomcodeOpen : (tier.title === 'Create room') ? this.handleCreateRoom : null}
+                      onClick={(tier) => this.handleClick(tier)}
                       color="primary"
                       disabled={this.state.buttonsDiabled}
                     >
