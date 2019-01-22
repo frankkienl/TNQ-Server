@@ -66,21 +66,21 @@ class PickRoom extends Component {
     this.state = {dialogRoomcodeOpen: false, roomcodeUpper: '', buttonsDisabled: false};
   }
 
-  handleDialogRoomcodeOpen = () => {
+  handleDialogRoomcodeOpen (){
     this.setState({dialogRoomcodeOpen: true, showLoading: true});
-  };
+  }
 
-  handleDialogRoomcodeClose = () => {
+  handleDialogRoomcodeClose() {
     this.setState({dialogRoomcodeOpen: false, showLoading: false});
-  };
+  }
 
-  handleDialogRoomcodeTfChange = () => {
+  handleDialogRoomcodeTfChange(){
     let rawRoomcode = document.getElementById('roomcode').value;
     let roomcodeUpper = rawRoomcode.toString().substr(0, 5).toUpperCase();
     this.setState({roomcodeUpper: roomcodeUpper});
-  };
+  }
 
-  handleCreateRoom = () => {
+  handleCreateRoom() {
     this.setState({showLoading: true});
     //Request new room
     console.log("creating room");
@@ -88,10 +88,10 @@ class PickRoom extends Component {
     createRoom().then(function (result) {
       console.log("created roomCode: " + result.data.roomCode);
     });
-  };
+  }
 
 
-  handleDialogRoomcodeSubmit = () => {
+  handleDialogRoomcodeSubmit() {
     this.setState({showRoomcodeLoading: true, showLoading: true});
     let joinRoom = firebase.functions().httpsCallable('joinRoom');
     let roomCodeToJoin = document.getElementById('roomcode').value.toUpperCase();
@@ -108,11 +108,10 @@ class PickRoom extends Component {
       alert("Roomcode does not exist");
       this.setState({showRoomcodeLoading: false, showLoading: false});
     });
-  };
+  }
   
   handleClick(tier) {
-     // if 
-  
+
   }
 
   render() {

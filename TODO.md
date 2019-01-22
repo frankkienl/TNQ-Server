@@ -13,3 +13,4 @@ Frontend
 - Question pack picker
 - prevent double click on 'next' button
 - Countdown 
+- Submit on enter in Nickname
