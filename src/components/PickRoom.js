@@ -40,12 +40,14 @@ const styles = theme => ({
 const choices = [
   {
     title: 'Create room',
+    action: 'create_room',
     description: ['You pick the question packs', 'Send roomcode to friends', 'You decide pace of the game'],
     buttonText: 'Create a room',
     buttonVariant: 'outlined',
   },
   {
     title: 'Join room',
+    action: 'join_room',
     subheader: "You're probably looking for this one!",
     description: ['Get a roomcode from a friend', 'Answer questions', 'Vote on the best answers'],
     buttonText: 'Join a room',
@@ -53,6 +55,7 @@ const choices = [
   },
   {
     title: 'Spectate room',
+    action: 'spectate_room',
     description: ['Get a roomcode from a friend', 'Just watch, no pressure', 'Great for viewing on a big screen'],
     buttonText: 'View a room',
     buttonVariant: 'outlined',
@@ -110,8 +113,13 @@ class PickRoom extends Component {
     });
   }
   
-  handleClick(tier) {
-
+  handleClick(e, tier) {
+    if (tier.action === 'create_room'){
+      this.handleCreateRoom();
+    }
+    if (tier.action === 'join_room'){
+      this.handleDialogRoomcodeOpen();
+    }
   }
 
   render() {
@@ -146,7 +154,7 @@ class PickRoom extends Component {
                     <Button
                       fullWidth
                       variant={tier.buttonVariant}
-                      onClick={(tier) => this.handleClick(tier)}
+                      onClick={(e) => this.handleClick(e,tier)}
                       color="primary"
                       disabled={this.state.buttonsDiabled}
                     >

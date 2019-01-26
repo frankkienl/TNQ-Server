@@ -47,9 +47,13 @@ class TopBar extends Component {
   };
 
   handleDialogNicknameSubmit = () => {
+    let newNickname  = document.getElementById('nickname').value;
+    if (newNickname.length < 1){
+      return;
+    }
     this.setState({showNicknameLoading: true});
     let changeNick = firebase.functions().httpsCallable('changeNickname');
-    changeNick({nickname: document.getElementById('nickname').value})
+    changeNick({nickname: newNickname})
       .then(() => {
         console.log("changed nickname");
         this.setState({showNicknameLoading: false});
@@ -157,6 +161,7 @@ class TopBar extends Component {
             </DialogContentText>
             <TextField
               autoFocus
+              required
               margin="dense"
               id="nickname"
               label="Nickname"
