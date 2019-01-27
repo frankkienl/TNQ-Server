@@ -16,7 +16,7 @@ class StateView extends Component {
         <code>
         {data}
         </code>
-        <br />
+        <hr />
         <code>
           {data2}
         </code>

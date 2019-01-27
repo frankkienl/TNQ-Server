@@ -12,5 +12,9 @@ service cloud.firestore {
       //only allow reading, all write should be done by functions
       allow read: if true;
     }
+    match /questionpacks/{document=**} {
+          //only allow reading, all write should be done by functions
+          allow read: if true;
+    }
   }
 }

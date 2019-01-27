@@ -39,11 +39,18 @@ class PickQuestionPacks extends Component {
 
   render() {
     const {classes} = this.props;
+
+    let qps = '';
+    
+
     return (
       <div className='pickQuestionPacks'>
         <Typography>
-          TODO: Questionpack picker
+          Questionpack picker
         </Typography>
+        <form>
+          {qps}
+        </form>
       </div>
     );
   }

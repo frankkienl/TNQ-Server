@@ -21,7 +21,7 @@ class App extends Component {
   }
 
   render() {
-    let isDebug = false;
+    let isDebug = true;
     return (
       <div className="App">
         <TopBar tnq={this.state.tnq} firebase={this.state.firebase}/>
@@ -80,6 +80,22 @@ class App extends Component {
                   tnq: {room: {$set: roomObj}}
                 });
                 this.setState(newState);
+
+                //Questionpacks (for picker)
+                debugger;
+                if (roomObj.status === 'waitingForPlayers'){
+                  firestore.collection(`questionpacks`).onSnapshot(qPacksCol => {
+                    let qPacks = {};
+                    qPacksCol.docs.forEach((qPackDoc) => {
+                      qPacks[qPackDoc.id] = qPackDoc.data();
+                    });
+                    let newState = update(this.state, {
+                      tnq: {questionPacks: {$set: qPacks}}
+                    });
+                    this.setState(newState);
+                  });
+                }
+
                 //Round
                 if (roomObj.status.startsWith('round')) {
                   firestore.doc(`rooms/${userObj.roomCode}/rounds/${roomObj.status}/`).onSnapshot(roundDoc => {

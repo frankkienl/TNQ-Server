@@ -9,12 +9,11 @@ import CardActions from "@material-ui/core/CardActions";
 import Button from "@material-ui/core/Button";
 import Dialog from "@material-ui/core/Dialog";
 import DialogContent from "@material-ui/core/DialogContent";
-import DialogContentText from "@material-ui/core/DialogContentText";
 import TextField from "@material-ui/core/TextField";
-import DialogActions from "@material-ui/core/DialogActions";
 import DialogTitle from "@material-ui/core/DialogTitle";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import * as firebase from "firebase";
+import {DialogActions} from "@material-ui/core";
 
 const styles = theme => ({
   layout: {
@@ -69,7 +68,7 @@ class PickRoom extends Component {
     this.state = {dialogRoomcodeOpen: false, roomcodeUpper: '', buttonsDisabled: false};
   }
 
-  handleDialogRoomcodeOpen (){
+  handleDialogRoomcodeOpen() {
     this.setState({dialogRoomcodeOpen: true, showLoading: true});
   }
 
@@ -77,7 +76,7 @@ class PickRoom extends Component {
     this.setState({dialogRoomcodeOpen: false, showLoading: false});
   }
 
-  handleDialogRoomcodeTfChange(){
+  handleDialogRoomcodeTfChange() {
     let rawRoomcode = document.getElementById('roomcode').value;
     let roomcodeUpper = rawRoomcode.toString().substr(0, 5).toUpperCase();
     this.setState({roomcodeUpper: roomcodeUpper});
@@ -94,7 +93,8 @@ class PickRoom extends Component {
   }
 
 
-  handleDialogRoomcodeSubmit() {
+  handleDialogRoomcodeSubmit(e) {
+    e.preventDefault();
     this.setState({showRoomcodeLoading: true, showLoading: true});
     let joinRoom = firebase.functions().httpsCallable('joinRoom');
     let roomCodeToJoin = document.getElementById('roomcode').value.toUpperCase();
@@ -102,22 +102,23 @@ class PickRoom extends Component {
     joinRoom({roomCode: roomCodeToJoin}).then((response) => {
       console.log('response', response);
       this.setState({showRoomcodeLoading: false, showLoading: false});
-      if (response.data.status === 'room_does_not_exist') {
-        alert("Roomcode does not exist");
+      debugger;
+      if (response.data.status === 'roomDoesNotExist') {
+        alert("Room does not exist");
       } else {
         this.handleDialogRoomcodeClose();
       }
     }).catch(() => {
-      alert("Roomcode does not exist");
+      alert("Room does not exist");
       this.setState({showRoomcodeLoading: false, showLoading: false});
     });
   }
-  
+
   handleClick(e, tier) {
-    if (tier.action === 'create_room'){
+    if (tier.action === 'create_room') {
       this.handleCreateRoom();
     }
-    if (tier.action === 'join_room'){
+    if (tier.action === 'join_room') {
       this.handleDialogRoomcodeOpen();
     }
   }
@@ -154,7 +155,7 @@ class PickRoom extends Component {
                     <Button
                       fullWidth
                       variant={tier.buttonVariant}
-                      onClick={(e) => this.handleClick(e,tier)}
+                      onClick={(e) => this.handleClick(e, tier)}
                       color="primary"
                       disabled={this.state.buttonsDiabled}
                     >
@@ -169,37 +170,36 @@ class PickRoom extends Component {
 
         <Dialog
           open={this.state.dialogRoomcodeOpen}
-          onClose={this.handleDialogRoomcodeClose}
-          aria-labelledby="form-dialog-title">
-          <DialogTitle id="form-dialog-title">Enter Roomcode</DialogTitle>
-          <DialogContent>
-            <DialogContentText>
-              Join Room, using Roomcode
-            </DialogContentText>
-            <TextField
-              autoFocus
-              margin="dense"
-              id="roomcode"
-              label="Roomcode"
-              value={this.state.roomcodeUpper}
-              fullWidth
-              onChange={this.handleDialogRoomcodeTfChange}
-            />
-            <br/><br/>
-            {(this.state.showRoomcodeLoading) ? <CircularProgress/> : ''}
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={this.handleDialogRoomcodeClose} color="primary">
-              Cancel
-            </Button>
-            <Button
-              onClick={this.handleDialogRoomcodeSubmit}
-              color="primary"
-              disabled={this.state.showRoomcodeLoading}
-            >
-              Submit
-            </Button>
-          </DialogActions>
+          onClose={(e) => this.handleDialogRoomcodeClose(e)}
+         >
+          <form onSubmit={() => this.handleDialogRoomcodeSubmit()}>
+            <DialogContent>
+              <Typography>Fill in roomcode, it should be 5 letters.</Typography>
+              <TextField
+                autoFocus
+                margin="dense"
+                id="roomcode"
+                label="Roomcode"
+                value={this.state.roomcodeUpper}
+                fullWidth
+                onChange={() => this.handleDialogRoomcodeTfChange()}
+              />
+            </DialogContent>
+            <DialogActions>
+              {(this.state.showRoomcodeLoading) ? <CircularProgress/> : ''}
+              <Button onClick={() => this.handleDialogRoomcodeClose()} color="primary">
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                onClick={(e) => this.handleDialogRoomcodeSubmit(e)}
+                color="primary"
+                disabled={this.state.showRoomcodeLoading}
+              >
+                Submit
+              </Button>
+            </DialogActions>
+          </form>
         </Dialog>
       </div>
     );
