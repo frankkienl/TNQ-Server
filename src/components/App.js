@@ -21,7 +21,7 @@ class App extends Component {
   }
 
   render() {
-    let isDebug = true;
+    let isDebug = false;
     return (
       <div className="App">
         <TopBar tnq={this.state.tnq} firebase={this.state.firebase}/>
