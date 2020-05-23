@@ -132,6 +132,10 @@ class ChangeNickname extends Component {
     this.setState({nickname: nickname});
   };
 
+  handleDialogNicknameSubmit(e){
+    this.handleChangeNickname(e);
+  }
+
   handleChangeNickname(e) {
     e.preventDefault();
     this.setState({showLoading: true});

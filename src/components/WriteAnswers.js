@@ -3,6 +3,7 @@ import {withStyles} from "@material-ui/core/styles";
 import Countdown from "./Countdown";
 import WriteAnswer from "./WriteAnswer";
 import RoomPlayers from "./RoomPlayers";
+import PlayersDone from "./PlayersDone";
 
 const styles = theme => ({
   layout: {

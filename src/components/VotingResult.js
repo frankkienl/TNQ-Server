@@ -44,7 +44,7 @@ class VotingResult extends Component {
     debugger;
     let tnq = this.props.tnq;
     let currentQuestionId = 'question' + (tnq.room.round.votingQuestionIndex + 1);
-    if (!tnq.room.round.questions || !tnq.room.round.answers || !tnq.room.round.voteResults) {
+    if (!tnq.room.round.questions || !tnq.room.round.answers || !tnq.room.round.voteResults || !tnq.room.players) {
       return (<p>Loading results..</p>);
     }
     let currentQuestion = tnq.room.round.questions[currentQuestionId];
