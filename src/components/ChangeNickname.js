@@ -50,6 +50,7 @@ class ChangeNickname extends Component {
       dialogEmojiOpen: false,
       nickname: oldNickname
     }
+    this.state = {showLoading: false}
   }
 
   render() {
@@ -134,6 +135,9 @@ class ChangeNickname extends Component {
   handleDialogNicknameSubmit(e) {
     e.preventDefault();
     this.setState({showNicknameLoading: true});
+  handleChangeNickname(e) {
+    e.preventDefault();
+    this.setState({showLoading: true});
     let changeNick = firebase.functions().httpsCallable('changeNickname');
     changeNick({nickname: document.getElementById('nickname').value})
       .then(function (result) {

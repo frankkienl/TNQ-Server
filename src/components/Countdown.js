@@ -58,7 +58,7 @@ class Countdown extends Component {
 
   sillyRemarks(timeLeft) {
     if (timeLeft <= 0) {
-      return 'Time is up!';
+      return 'Out of time!';
     }
     if (timeLeft < 10) {
       return 'Less than 10 seconds left! Hurry up!';

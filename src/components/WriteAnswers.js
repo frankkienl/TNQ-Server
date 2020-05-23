@@ -48,7 +48,7 @@ class WriteAnswers extends Component {
           <br/>
           <WriteAnswer tnq={tnq} questionId={questionsForMe[1]}/>
           <RoomPlayers tnq={tnq}/>
-          
+          <PlayersDone tnq={tnq}/>
         </main>
       </div>
     );
