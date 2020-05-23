@@ -14,6 +14,7 @@ import DialogTitle from "@material-ui/core/DialogTitle";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import * as firebase from "firebase";
 import {DialogActions} from "@material-ui/core";
+import DialogContentText from "@material-ui/core/DialogContentText";
 
 const styles = theme => ({
   layout: {
